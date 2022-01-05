@@ -4,27 +4,70 @@ author: "James Gilbert"
 date: "12/21/2021"
 output: html_document
 ---
+```{r}
+library(httr)
+library(tidyverse)
+library(jsonlite)
+```
+Property Violations API URL
+https://data.nashville.gov/resource/479w-kw2x.json
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+STRs API URL
+https://data.nashville.gov/resource/2z82-v8pm.json
+
+```{r}
+url = 'https://data.nashville.gov/resource/479w-kw2x.json'
+
+query = list(
+  '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location',
+  '$limit' = 90000
+)
+
+response <- GET(url, query=query )
+
+Violations <- content(response, as = 'text') %>% 
+  fromJSON()
+
 ```
 
-## R Markdown
+```{r}
+url = 'https://data.nashville.gov/resource/2z82-v8pm.json'
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+query = list(
+  '$select'= 'permit, permit_status, parcel, address, council_dist, mapped_location',
+  '$limit' = 13000
+)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+response <- GET(url, query = query)
 
-```{r cars}
-summary(cars)
+STRs <- content(response, as = 'text') %>% 
+  fromJSON()
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+**Some general info**
+**The STRs will only have data from 5/23/2016 onward. 
+The Violations data set is for 3 years prior to the current date from when the data set was accessed. It may be better to access this through the API so it is current when the app is used. *API CALL COMPLETE*
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+For STRs & Violations, the address of the permitted STRs also has lat/long in parentheses. I'll need to extract this and make separate columns for mapping purposes. *USING THE API REMEDIED THIS.*
+
+Make a list of the columns from each data set that are absolutely necessary and only pull those using the API. *DONE*
+
+**Council district will be a good column to group by for graphing. 
+
+**It looks like the types of property violations has a lot of variation in the wording. It might be hard to group by certain types of violations because I may miss some. 
+**Property.APN and Parcel are the same info for the Violations and STRs respectively. 
+  Change these columns to be the same in each dataframe and merge the datasets. 
+  
+** find a list of the council districts 'names' and recode the column...<- not a high priority
+
+```{r}
+Violations %>%
+  group_by(council_district) %>%
+  count() %>% 
+  ggplot(x = council_district)+
+  geom_bar()
+  
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
