@@ -8,6 +8,8 @@ output: html_document
 library(httr)
 library(tidyverse)
 library(jsonlite)
+library(sf)
+library(leaflet)
 ```
 Property Violations API URL
 https://data.nashville.gov/resource/479w-kw2x.json
@@ -23,14 +25,11 @@ query = list(
   '$limit' = 90000
 )
 
-response <- GET(url, query=query )
+response<- GET(url, query=query)
 
 Violations <- content(response, as = 'text') %>% 
   fromJSON()
 
-```
-
-```{r}
 url = 'https://data.nashville.gov/resource/2z82-v8pm.json'
 
 query = list(
@@ -42,6 +41,60 @@ response <- GET(url, query = query)
 
 STRs <- content(response, as = 'text') %>% 
   fromJSON()
+
+```
+
+```{r}
+#This doesn't work for some reason with the query and using read_sf. 
+url = 'https://data.nashville.gov/resource/2z82-v8pm.geojson'
+query = list(
+  '$select'= 'permit, permit_status, parcel, address, council_dist, mapped_location, geometry',
+  '$limit' = 13000
+)
+
+STRs<-read_sf(url, query = query)
+```
+
+
+'1' = 'Bordeaux, Joelton, Whites Creek, Scottsboro'
+'2' = 'North Nashville, Bordeaux, Metro Center'
+'3' = 'Brick Church, Goodlettseville, Madison, Whites Creek'
+'4' = 'Brentwood'
+'5' = 'East Nashville, Cleveland Park, Maxwell Heights'
+'6' = 'East Nashville, Lockland Springs, Rosebank'
+'7' = 'East Nashville, West Inglewood, Madison, District 7'
+'8' = 'East Nashville, East Inglewood, Madison, District 8'
+'9' = 'Madison, Neely's Bend'
+'10' = 'Goodlettsville, Madison'
+'11' = 'Old Hickory, Hermitage'
+'12' = 'Hermitage'
+'13' = 'Donelson, Airport'
+'14' = 'Donelson, Hermitage'
+'15' = 'Donelson, Opryland'
+'16' = 'South Nashville, Woodbine'
+'17' = 'South Nashville, Fairgrounds, Berry Hill, 12 South'
+'18' = 'South Nashville, Waverly-Belmont, Vanderbilt'
+'19' = 'North Nashville, South Nashville, Downtown'
+'20' = 'West Nashville, The Nations, Cockrill Bend'
+'21' = 'North Nashville, West End, Midtown, TSU'
+'22' = 'West Nashville, Bellevue'
+'23' = 'West Nashville, Belle Meade'
+'24' = 'West Nashville, Sylvan Park'
+'25' = 'Oak Hill, Green Hills'
+'26' = 'Crieve Hall, Paragon Mills'
+'27' = 'Southeast Nashville, Tusculum'
+'28' = 'Southeast Nashville, Antioch'
+'29' = 'Antioch Norht-Priest Lake'
+'30' = 'Haywood-Tusculum'
+'31' = 'Antioch West, Cane Ridge'
+'32' = 'Antioch Central'
+'33' = 'Antioch South, Can Ridge'
+'34' = 'Oak Hill, Forest Hills'
+'35' = 'Bellevue'
+
+
+```{r}
+
 ```
 
 
@@ -61,13 +114,20 @@ Make a list of the columns from each data set that are absolutely necessary and 
   
 ** find a list of the council districts 'names' and recode the column...<- not a high priority
 
+** I need to work on a merge that combines the Violations with STRs on the STRs address to get a list of "problematic" STRs. 
+
+DATA EXPLORATION
+
+What is the makeup of districts that have code violations reported?
+pull in a dataset that has median house price for each district?
+
 ```{r}
 Violations %>%
-  group_by(council_district) %>%
-  count() %>% 
-  ggplot(x = council_district)+
+  count(request, council_district) %>% 
+  ggplot(aes(x=council_district))+
   geom_bar()
-  
+```
+```{r}
 
 ```
 
