@@ -10,6 +10,7 @@ library(tidyverse)
 library(jsonlite)
 library(sf)
 library(leaflet)
+library(geojsonio)
 ```
 Property Violations API URL
 https://data.nashville.gov/resource/479w-kw2x.json
@@ -128,6 +129,6 @@ Violations %>%
   geom_bar()
 ```
 ```{r}
-
+STRs<-geojson_json(STRs, lat='mapped_location.latitude', lon = 'mapped_location.longitude')
 ```
 
