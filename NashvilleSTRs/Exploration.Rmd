@@ -31,6 +31,8 @@ response<- GET(url, query=query)
 Violations <- content(response, as = 'text') %>% 
   fromJSON()
 
+#write_json(Violations, '../data/Violations.json')
+
 url = 'https://data.nashville.gov/resource/2z82-v8pm.json'
 
 query = list(
@@ -43,7 +45,14 @@ response <- GET(url, query = query)
 STRs <- content(response, as = 'text') %>% 
   fromJSON()
 
+#write_json(STRs, '../data/STRs.json')
+
 ```
+
+```{r}
+STRs<- geojson_list(STRs, lat = 'mapped_location.latitude', lon = 'mapped_location.longitude')
+```
+
 
 ```{r}
 #This doesn't work for some reason with the query and using read_sf. 
@@ -95,9 +104,14 @@ STRs<-read_sf(url, query = query)
 
 
 ```{r}
-
+STRs %>% 
+  str()
 ```
 
+```{r}
+Violations %>% 
+  str()
+```
 
 **Some general info**
 **The STRs will only have data from 5/23/2016 onward. 
@@ -123,12 +137,35 @@ What is the makeup of districts that have code violations reported?
 pull in a dataset that has median house price for each district?
 
 ```{r}
+Violations %>% 
+  factor(council_district)
+
+```
+
+
+```{r}
 Violations %>%
   count(request, council_district) %>% 
   ggplot(aes(x=council_district))+
   geom_bar()
 ```
 ```{r}
-STRs<-geojson_json(STRs, lat='mapped_location.latitude', lon = 'mapped_location.longitude')
+STRs<-geojson_json(STRs, lat='mapped_location$latitude', lon = 'mapped_location$longitude')
+```
+```{r}
+STRs <- STRs %>% 
+  mutate_at(.vars = c(mapped_location, mapped_location), ~as.numeric(.))
+```
+```{r}
+STRs$mapped_location
+```
+
+
+
+```{r}
+m <- leaflet() %>% setView(lng = -86.785014, lat = 36.163371, zoom = 11) %>% 
+  addTiles() %>% 
+  addMarkers(STRs)
+m
 ```
 

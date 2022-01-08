@@ -3,6 +3,8 @@ library(tidyverse)
 library(jsonlite)
 library(sf)
 library(leaflet)
+library(geojsonio)
+
 
 url = 'https://data.nashville.gov/resource/479w-kw2x.json'
 
