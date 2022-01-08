@@ -18,6 +18,9 @@ response <- GET(url, query=query )
 Violations <- content(response, as = 'text') %>% 
   fromJSON()
 
+Violations<-Violations %>% unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+
 url = 'https://data.nashville.gov/resource/2z82-v8pm.json'
 
 query = list(
@@ -29,3 +32,6 @@ response <- GET(url, query = query)
 
 STRs <- content(response, as = 'text') %>% 
   fromJSON()
+
+STRs<-STRs %>% unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))

@@ -21,6 +21,6 @@ server <- function(input, output, session) {
       addProviderTiles(providers$Stamen.TonerLite,
                        options = providerTileOptions(noWrap = TRUE)
       ) %>%
-      addMarkers(data = points())
+      addMarkers(~longitude, ~latitude, clusterOptions = markerClusterOptions())
   })
 }
