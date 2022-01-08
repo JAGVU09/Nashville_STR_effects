@@ -150,14 +150,15 @@ Violations %>%
   geom_bar()
 ```
 ```{r}
-STRs<-geojson_json(STRs, lat='mapped_location$latitude', lon = 'mapped_location$longitude')
+STRs<-STRs %>% unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+  
 ```
+
+
 ```{r}
-STRs <- STRs %>% 
-  mutate_at(.vars = c(mapped_location, mapped_location), ~as.numeric(.))
-```
-```{r}
-STRs$mapped_location
+STRs %>% 
+  str()
 ```
 
 
@@ -165,7 +166,13 @@ STRs$mapped_location
 ```{r}
 m <- leaflet() %>% setView(lng = -86.785014, lat = 36.163371, zoom = 11) %>% 
   addTiles() %>% 
-  addMarkers(STRs)
+  addMarkers(STRs, lat = 'latitude', lng = 'longitude')
 m
+```
+```{r}
+leaflet(data = STRs) %>% 
+  addTiles() %>% 
+  addMarkers(~longitude, ~latitude) 
+  #addPolygons(data = davidson_county)
 ```
 
