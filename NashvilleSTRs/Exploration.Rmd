@@ -50,9 +50,12 @@ STRs <- content(response, as = 'text') %>%
 ```
 
 ```{r}
-STRs<- geojson_list(STRs, lat = 'mapped_location.latitude', lon = 'mapped_location.longitude')
-```
+STRs<-STRs %>% unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
 
+Violations<-Violations %>% unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+```
 
 ```{r}
 #This doesn't work for some reason with the query and using read_sf. 
@@ -102,17 +105,6 @@ STRs<-read_sf(url, query = query)
 '34' = 'Oak Hill, Forest Hills'
 '35' = 'Bellevue'
 
-
-```{r}
-STRs %>% 
-  str()
-```
-
-```{r}
-Violations %>% 
-  str()
-```
-
 **Some general info**
 **The STRs will only have data from 5/23/2016 onward. 
 The Violations data set is for 3 years prior to the current date from when the data set was accessed. It may be better to access this through the API so it is current when the app is used. *API CALL COMPLETE*
@@ -136,11 +128,6 @@ DATA EXPLORATION
 What is the makeup of districts that have code violations reported?
 pull in a dataset that has median house price for each district?
 
-```{r}
-Violations %>% 
-  factor(council_district)
-
-```
 
 
 ```{r}
@@ -149,11 +136,7 @@ Violations %>%
   ggplot(aes(x=council_district))+
   geom_bar()
 ```
-```{r}
-STRs<-STRs %>% unnest(mapped_location) %>% 
-  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
-  
-```
+
 
 
 ```{r}
@@ -169,10 +152,11 @@ m <- leaflet() %>% setView(lng = -86.785014, lat = 36.163371, zoom = 11) %>%
   addMarkers(STRs, lat = 'latitude', lng = 'longitude')
 m
 ```
+
 ```{r}
 leaflet(data = STRs) %>% 
   addTiles() %>% 
-  addMarkers(~longitude, ~latitude) 
+  addMarkers(~longitude, ~latitude, clusterOptions = markerClusterOptions())
   #addPolygons(data = davidson_county)
 ```
 
