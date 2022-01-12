@@ -12,10 +12,8 @@ We will analyze the impact of STRs on factors outside of housing prices. The fac
 Data Question
 Present your question. Feel free to include any research/articles that are relevant or show where others have attempted to answer this question.
 h$ps://fox17.com/news/local/short-term-rentals-causing-long-term-problems-for-some- nashville-neighborhoods-travel-airbnb-nashville-tennessee h$ps://www.newschannel5.com/news/on-the-rise/short-term-rental-rule-violators-iden@fied- by-metro-codes
-   •
-•
-• •
-•
+
+
 Are STR owners calling codes on their neighbors more often than their neighbors are calling codes on the STRs?
 • A STR is a business, it’s in that business’ interest for the surrounding neighborhood to look nice so they can charge more for their rental.
 When STRs accumulate in a neighborhood, is there are positive correlation between the number of STRs and the rate of property violation reports?
@@ -43,12 +41,10 @@ Schedule (through 1/22/2022)
 4. Internal Demos (1/18/2022)
 5. Midcourse Project Presentations (1/22/2022)
 Data Sources
-• Zillow Data: h$ps://www.zillow.com/research/data/
-• h$ps://data.nashville.gov/Business-Development-Housing/Property-Standards-
-Viola@ons/479w-kw2x
-• h$ps://data.nashville.gov/Licenses-Permits/Residen@al-Short-Term-Rental-Permits/
-2z82-v8pm
-• A crime dataset filtered for crimes near STRs.
+https://data.nashville.gov/Business-Development-Housing/Property-Standards-Viola@ons/479w-kw2x
+https://data.nashville.gov/Licenses-Permits/Residen@al-Short-Term-Rental-Permits/2z82-v8pm
+https://data.nashville.gov/General-Government/Council-District-Outlines-GIS-/iw7r-m8qr
+
 Known Issues and Challenges
 Explain any anticipated challenges with your project, and your plan for managing them.
 • STRs operating without a permit would result in undercounting the STRs.

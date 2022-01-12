@@ -18,18 +18,55 @@ https://data.nashville.gov/resource/479w-kw2x.json
 STRs API URL
 https://data.nashville.gov/resource/2z82-v8pm.json
 
+CHANGE THE $limit BACK TO 10000, and 13000!!!
+
+```{r}
+url = 'https://data.nashville.gov/resource/479w-kw2x.json'
+query = list(
+  '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location',
+  '$limit' = 90000
+)
+response<- GET(url, query=query)
+Violations <- content(response, as = 'text') %>% 
+  fromJSON()
+#write_json(Violations, '../data/Violations.json')
+url = 'https://data.nashville.gov/resource/2z82-v8pm.json'
+query = list(
+  '$select'= 'permit, permit_status, parcel, address, council_dist, mapped_location',
+  '$limit' = 13000
+)
+response <- GET(url, query = query)
+STRs <- content(response, as = 'text') %>% 
+  fromJSON()
+#write_json(STRs, '../data/STRs.json')
+
+url = 'https://data.nashville.gov/resource/iw7r-m8qr.geojson'
+
+council_districts<-geojson_read(url, what ='sp')
+```
+
+```{r}
+STRs<-STRs %>% unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+Violations<-Violations %>% unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+```
+
+
 ```{r}
 url = 'https://data.nashville.gov/resource/479w-kw2x.json'
 
 query = list(
   '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location',
-  '$limit' = 90000
+  '$limit' = 100000
 )
 
 response<- GET(url, query=query)
 
 Violations <- content(response, as = 'text') %>% 
-  fromJSON()
+  fromJSON()%>%
+  unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
 
 #write_json(Violations, '../data/Violations.json')
 
@@ -43,30 +80,28 @@ query = list(
 response <- GET(url, query = query)
 
 STRs <- content(response, as = 'text') %>% 
-  fromJSON()
+  fromJSON() %>% 
+  unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
 
 #write_json(STRs, '../data/STRs.json')
 
+url = 'https://data.nashville.gov/resource/iw7r-m8qr.geojson'
+
+council_districts<-geojson_read(url, what ='sp')
+
 ```
+
 
 ```{r}
-STRs<-STRs %>% unnest(mapped_location) %>% 
-  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 11)) %>% 
+  addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
+                       options = providerTileOptions(noWrap = TRUE)) %>% 
+  addMarkers(~longitude, ~latitude, clusterOptions = markerClusterOptions()) %>% 
+  addPolygons(data = council_districts)
 
-Violations<-Violations %>% unnest(mapped_location) %>% 
-  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
 ```
 
-```{r}
-#This doesn't work for some reason with the query and using read_sf. 
-url = 'https://data.nashville.gov/resource/2z82-v8pm.geojson'
-query = list(
-  '$select'= 'permit, permit_status, parcel, address, council_dist, mapped_location, geometry',
-  '$limit' = 13000
-)
-
-STRs<-read_sf(url, query = query)
-```
 
 
 '1' = 'Bordeaux, Joelton, Whites Creek, Scottsboro'
@@ -113,13 +148,13 @@ For STRs & Violations, the address of the permitted STRs also has lat/long in pa
 
 Make a list of the columns from each data set that are absolutely necessary and only pull those using the API. *DONE*
 
-**Council district will be a good column to group by for graphing. 
+**Council district will be a good column to group by for graphing. UPDATE: pulled in another dataset that has the geometry for the council districts which should make heat mapping easier. I might merge all datasets on the council districts columns.  
 
 **It looks like the types of property violations has a lot of variation in the wording. It might be hard to group by certain types of violations because I may miss some. 
 **Property.APN and Parcel are the same info for the Violations and STRs respectively. 
   Change these columns to be the same in each dataframe and merge the datasets. 
   
-** find a list of the council districts 'names' and recode the column...<- not a high priority
+** find a list of the council districts 'names' and recode the column...<- not a high priority. *DONE*
 
 ** I need to work on a merge that combines the Violations with STRs on the STRs address to get a list of "problematic" STRs. 
 
@@ -128,35 +163,62 @@ DATA EXPLORATION
 What is the makeup of districts that have code violations reported?
 pull in a dataset that has median house price for each district?
 
+Heat map with years changing the amount of Code violations over time.
+
 
 
 ```{r}
 Violations %>%
-  count(request, council_district) %>% 
-  ggplot(aes(x=council_district))+
-  geom_bar()
+  mutate(TotalViolations = count(council_district))
 ```
-
-
-
 ```{r}
-STRs %>% 
-  str()
-```
+leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 11)) %>% 
+  addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
+                       options = providerTileOptions(noWrap = TRUE)) %>% 
+  addMarkers(~longitude, ~latitude, clusterOptions = markerClusterOptions()) %>% 
+  addPolygons(data = council_districts)
 
-
-
-```{r}
-m <- leaflet() %>% setView(lng = -86.785014, lat = 36.163371, zoom = 11) %>% 
-  addTiles() %>% 
-  addMarkers(STRs, lat = 'latitude', lng = 'longitude')
-m
 ```
 
 ```{r}
-leaflet(data = STRs) %>% 
-  addTiles() %>% 
-  addMarkers(~longitude, ~latitude, clusterOptions = markerClusterOptions())
-  #addPolygons(data = davidson_county)
+class(council_districts)
+```
+
+
+```{r}
+bins <- c(0,50,100,200,400,800,1000,2000,4000,8000)
+pal <- colorBin("YlOrRd", domain = states$density, bins = bins)
+
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g people / mi<sup>2</sup>",
+  states$name, states$density
+) %>% lapply(htmltools::HTML)
+
+leaflet(council_districts) %>%
+  setView(-96, 37.8, 4) %>%
+  addProviderTiles("MapBox", options = providerTileOptions(
+    id = "mapbox.light",
+    accessToken = Sys.getenv('MAPBOX_ACCESS_TOKEN'))) %>%
+  addPolygons(
+    fillColor = ~pal(density),
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlightOptions = highlightOptions(
+      weight = 5,
+      color = "#666",
+      dashArray = "",
+      fillOpacity = 0.7,
+      bringToFront = TRUE),
+    label = labels,
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto")) %>%
+  addLegend(pal = pal, values = ~density, opacity = 0.7, title = NULL,
+    position = "bottomright")
+
 ```
 
