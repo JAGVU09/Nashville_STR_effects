@@ -24,7 +24,7 @@ CHANGE THE $limit BACK TO 10000, and 13000!!!
 url = 'https://data.nashville.gov/resource/479w-kw2x.json'
 query = list(
   '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location',
-  '$limit' = 90000
+  '$limit' = 100000
 )
 response<- GET(url, query=query)
 Violations <- content(response, as = 'text') %>% 
@@ -43,14 +43,13 @@ STRs <- content(response, as = 'text') %>%
 url = 'https://data.nashville.gov/resource/iw7r-m8qr.geojson'
 
 council_districts<-geojson_read(url, what ='sp')
-```
 
-```{r}
 STRs<-STRs %>% unnest(mapped_location) %>% 
   mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
-Violations<-Violations %>% unnest(mapped_location) %>% 
-  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+#Violations<-Violations %>% unnest(mapped_location) %>% 
+  #mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
 ```
+
 
 
 ```{r}
@@ -65,7 +64,7 @@ response<- GET(url, query=query)
 
 Violations <- content(response, as = 'text') %>% 
   fromJSON()%>%
-  unnest(mapped_location) %>% 
+  unnest('mapped_location') %>% 
   mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
 
 #write_json(Violations, '../data/Violations.json')
@@ -81,7 +80,7 @@ response <- GET(url, query = query)
 
 STRs <- content(response, as = 'text') %>% 
   fromJSON() %>% 
-  unnest(mapped_location) %>% 
+  unnest('mapped_location') %>% 
   mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
 
 #write_json(STRs, '../data/STRs.json')
@@ -94,7 +93,7 @@ council_districts<-geojson_read(url, what ='sp')
 
 
 ```{r}
-leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 11)) %>% 
+leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
   addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
                        options = providerTileOptions(noWrap = TRUE)) %>% 
   addMarkers(~longitude, ~latitude, clusterOptions = markerClusterOptions()) %>% 
@@ -102,7 +101,38 @@ leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 11)) %>%
 
 ```
 
+```{r}
+grouped_STRs<-STRs %>%
+  group_by(council_dist) %>% 
+  tally() %>% 
+  mutate(STRs_per_dist = n)
+```
 
+```{r}
+grouped_viol<-Violations %>% 
+  group_by(council_district) %>% 
+  tally() %>% 
+  mutate(Violations_per_dist = n)
+```
+
+```{r}
+
+bins <- c(0,50,100,200,400,800,1000,2000,4000,8000)
+pal <- colorBin("YlOrRd", domain = grouped_STRs$STRs_per_dist, bins = bins)
+
+m<- leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
+  addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
+                                  options = providerTileOptions(noWrap = TRUE)) %>% 
+  addPolygons(data = council_districts,
+              fillColor = ~pal(grouped_STRs$STRs_per_dist),
+              weight = 2,
+              opacity = 1,
+              color = "white",
+              fillOpacity = 0.7)
+
+
+m
+```
 
 '1' = 'Bordeaux, Joelton, Whites Creek, Scottsboro'
 '2' = 'North Nashville, Bordeaux, Metro Center'
@@ -167,31 +197,18 @@ Heat map with years changing the amount of Code violations over time.
 
 
 
-```{r}
-Violations %>%
-  mutate(TotalViolations = count(council_district))
-```
-```{r}
-leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 11)) %>% 
-  addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
-                       options = providerTileOptions(noWrap = TRUE)) %>% 
-  addMarkers(~longitude, ~latitude, clusterOptions = markerClusterOptions()) %>% 
-  addPolygons(data = council_districts)
-
-```
-
-```{r}
-class(council_districts)
-```
 
 
+
+
+Alter this code for heat map
 ```{r}
 bins <- c(0,50,100,200,400,800,1000,2000,4000,8000)
-pal <- colorBin("YlOrRd", domain = states$density, bins = bins)
+pal <- colorBin("YlOrRd", domain = STRs$STRs_per_dist, bins = bins)
 
 labels <- sprintf(
   "<strong>%s</strong><br/>%g people / mi<sup>2</sup>",
-  states$name, states$density
+  states$name, STRs$STRs_per_dist,
 ) %>% lapply(htmltools::HTML)
 
 leaflet(council_districts) %>%
