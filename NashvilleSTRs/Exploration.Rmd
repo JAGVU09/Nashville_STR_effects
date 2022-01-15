@@ -11,12 +11,16 @@ library(jsonlite)
 library(sf)
 library(leaflet)
 library(geojsonio)
+library(viridis)
 ```
 Property Violations API URL
 https://data.nashville.gov/resource/479w-kw2x.json
 
 STRs API URL
 https://data.nashville.gov/resource/2z82-v8pm.json
+
+Council Districts spatial data URL
+https://data.nashville.gov/resource/iw7r-m8qr.geojson
 
 CHANGE THE $limit BACK TO 90000, and 13000!!! If you put limit to 100000 for Violations it returns a list and will not unnest. Do not exceed 90000 for the limit on the Query
 
@@ -90,6 +94,21 @@ url = 'https://data.nashville.gov/resource/iw7r-m8qr.geojson'
 
 council_districts<-geojson_read(url, what ='sp')
 
+
+grouped_STRs<-STRs %>%
+  group_by(council_dist) %>% 
+  tally() %>% 
+  rename(STRs_per_dist = n) %>% 
+  arrange(desc(STRs_per_dist)) %>% 
+  drop_na()
+
+grouped_viol<-Violations %>% 
+  group_by(council_district) %>% 
+  tally() %>% 
+  rename(Violations_per_dist = n) %>% 
+  arrange(desc(Violations_per_dist)) %>% 
+  drop_na()
+
 ```
 
 
@@ -102,55 +121,84 @@ leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>%
 
 ```
 
-```{r}
-grouped_STRs<-STRs %>%
-  group_by(council_dist) %>% 
-  tally() %>% 
-  mutate(STRs_per_dist = n)
-```
-
-```{r}
-grouped_viol<-Violations %>% 
-  group_by(council_district) %>% 
-  tally() %>% 
-  mutate(Violations_per_dist = n)
-```
 
 ```{r}
 
-bins <- c(0,50,100,200,400,800,1000,2000,4000,8000)
-pal <- colorBin("YlOrRd", domain = grouped_STRs$STRs_per_dist, bins = bins)
+STRbins <- c(0,10,20,50,100,200,500,1000,2000,3000)
+STRbinpal <- colorBin(heat.colors(9), domain = grouped_STRs$STRs_per_dist, bins = STRbins, reverse = TRUE)
 
-labels <- sprintf()
+STRlabels <- sprintf(
+  "<strong>%s</strong><br/>%g STRs / mi<sup>2</sup>",
+  grouped_STRs$council_dist, grouped_STRs$STRs_per_dist
+) %>% lapply(htmltools::HTML)
 
 
-m<- leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
+STRmap<- leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
   addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
                                   options = providerTileOptions(noWrap = TRUE)) %>% 
   addPolygons(data = council_districts,
-              fillColor = ~pal(grouped_STRs$STRs_per_dist),
-              weight = 2,
-              opacity = 1,
-              color = "white",
-              fillOpacity = 0.7,
+              fillColor = ~STRbinpal(grouped_STRs$STRs_per_dist),
+              opacity = 0.2,
+              dashArray = "3",
+              fillOpacity = 0.9,
               highlightOptions = highlightOptions(
-                weight = 5, 
+                weight = 5,
                 color = '#666',
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE),
+              label = STRlabels,
+              labelOptions = labelOptions(
+                style = list('font-weight' = 'normal', padding = '3px 8px'),
+                textsize = '15px',
+                direction = 'auto'
+              )
+              )
+              
+  
+
+STRmap
+```
+
+```{r}
+
+Violbins <- c(0,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600,6700)
+Violbinpal <- colorBin(heat.colors(12), domain = grouped_viol$Violations_per_dist, bins = Violbins)
+
+Viollabels <- sprintf(
+  "<strong>%s</strong><br/>%g Violations / mi<sup>2</sup>",
+  grouped_viol$council_dist, grouped_viol$Violations_per_dist
+) %>% lapply(htmltools::HTML)
+
+
+Violmap<- leaflet(data = Violations, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
+  addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
+                                  options = providerTileOptions(noWrap = TRUE)) %>% 
+  addPolygons(data = council_districts,
+              fillColor = ~Violbinpal(grouped_viol$Violations_per_dist),
+              opacity = 0.2,
+              dashArray = "3",
+              fillOpacity = 0.9,
               highlightOptions = highlightOptions(
-                
-                label = labels,
-                labelOptions = labelOptions(
-                  style = list("font-weight" = "normal", padding = "3px 8px"),
-                  textsize = "15px",
-                  direction = "auto"))
-  )
-            
+                weight = 5,
+                color = '#666',
+                dashArray = "",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              label = Viollabels,
+              labelOptions = labelOptions(
+                style = list('font-weight' = 'normal', padding = '3px 8px'),
+                textsize = '15px',
+                direction = 'auto'
+              )
+              )
+
+Violmap
+```
 
 
-m
+```{r}
+cor(grouped_STRs$STRs_per_dist, grouped_viol$Violations_per_dist)
 ```
 
 '1' = 'Bordeaux, Joelton, Whites Creek, Scottsboro'
@@ -222,7 +270,7 @@ Heat map with years changing the amount of Code violations over time.
 
 Alter this code for heat map
 ```{r}
-bins <- c(0,50,100,200,400,800,1000,2000,4000,8000)
+bins <- c(3000,2750,2500,2250,2000,1750,1500,1250,1000,750,500,250,100,50,0)
 pal <- colorBin("YlOrRd", domain = STRs$STRs_per_dist, bins = bins)
 
 labels <- sprintf(
