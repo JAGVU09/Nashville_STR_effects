@@ -18,17 +18,18 @@ https://data.nashville.gov/resource/479w-kw2x.json
 STRs API URL
 https://data.nashville.gov/resource/2z82-v8pm.json
 
-CHANGE THE $limit BACK TO 10000, and 13000!!!
+CHANGE THE $limit BACK TO 90000, and 13000!!! If you put limit to 100000 for Violations it returns a list and will not unnest. Do not exceed 90000 for the limit on the Query
 
 ```{r}
 url = 'https://data.nashville.gov/resource/479w-kw2x.json'
 query = list(
   '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location',
-  '$limit' = 100000
+  '$limit' = 90000
 )
 response<- GET(url, query=query)
 Violations <- content(response, as = 'text') %>% 
   fromJSON()
+
 #write_json(Violations, '../data/Violations.json')
 url = 'https://data.nashville.gov/resource/2z82-v8pm.json'
 query = list(
@@ -46,8 +47,8 @@ council_districts<-geojson_read(url, what ='sp')
 
 STRs<-STRs %>% unnest(mapped_location) %>% 
   mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
-#Violations<-Violations %>% unnest(mapped_location) %>% 
-  #mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+Violations<-Violations %>% unnest(mapped_location) %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
 ```
 
 
@@ -57,7 +58,7 @@ url = 'https://data.nashville.gov/resource/479w-kw2x.json'
 
 query = list(
   '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location',
-  '$limit' = 100000
+  '$limit' = 90000
 )
 
 response<- GET(url, query=query)
@@ -120,6 +121,9 @@ grouped_viol<-Violations %>%
 bins <- c(0,50,100,200,400,800,1000,2000,4000,8000)
 pal <- colorBin("YlOrRd", domain = grouped_STRs$STRs_per_dist, bins = bins)
 
+labels <- sprintf()
+
+
 m<- leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
   addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
                                   options = providerTileOptions(noWrap = TRUE)) %>% 
@@ -128,7 +132,22 @@ m<- leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>
               weight = 2,
               opacity = 1,
               color = "white",
-              fillOpacity = 0.7)
+              fillOpacity = 0.7,
+              highlightOptions = highlightOptions(
+                weight = 5, 
+                color = '#666',
+                dashArray = "",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              highlightOptions = highlightOptions(
+                
+                label = labels,
+                labelOptions = labelOptions(
+                  style = list("font-weight" = "normal", padding = "3px 8px"),
+                  textsize = "15px",
+                  direction = "auto"))
+  )
+            
 
 
 m
