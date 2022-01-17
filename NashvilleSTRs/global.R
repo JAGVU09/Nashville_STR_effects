@@ -10,15 +10,17 @@ url = 'https://data.nashville.gov/resource/479w-kw2x.json'
 
 query = list(
   '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location',
-  '$limit' = 100000
+  '$limit' = 90000
 )
 
-response <- GET(url, query=query )
+response<- GET(url, query=query)
 
 Violations <- content(response, as = 'text') %>% 
-  fromJSON()%>% 
-  unnest(mapped_location) %>% 
+  fromJSON()%>%
+  unnest('mapped_location') %>% 
   mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+
+#write_json(Violations, '../data/Violations.json')
 
 url = 'https://data.nashville.gov/resource/2z82-v8pm.json'
 
@@ -30,11 +32,30 @@ query = list(
 response <- GET(url, query = query)
 
 STRs <- content(response, as = 'text') %>% 
-  fromJSON()%>%
-  unnest(mapped_location) %>% 
+  fromJSON() %>% 
+  unnest('mapped_location') %>% 
   mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.))
+
+#write_json(STRs, '../data/STRs.json')
 
 url = 'https://data.nashville.gov/resource/iw7r-m8qr.geojson'
 
-council_districts<-read_sf(url)
+council_districts<-geojson_read(url, what ='sp')
+
+
+grouped_STRs<-STRs %>%
+  group_by(council_dist) %>% 
+  tally() %>% 
+  rename(STRs_per_dist = n, council_district = council_dist) %>% 
+  arrange(desc(STRs_per_dist)) %>% 
+  drop_na()
+
+grouped_viol<-Violations %>% 
+  group_by(council_district) %>% 
+  tally() %>% 
+  rename(Violations_per_dist = n) %>% 
+  arrange(desc(Violations_per_dist)) %>% 
+  drop_na()
+
+STRs_Viol_per_district<-merge(grouped_STRs, grouped_viol, by = 'council_district')
 
