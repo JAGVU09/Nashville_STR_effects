@@ -4,6 +4,7 @@ library(jsonlite)
 library(sf)
 library(leaflet)
 library(geojsonio)
+library(RColorBrewer)
 
 
 url = 'https://data.nashville.gov/resource/479w-kw2x.json'
@@ -58,4 +59,12 @@ grouped_viol<-Violations %>%
   drop_na()
 
 STRs_Viol_per_district<-merge(grouped_STRs, grouped_viol, by = 'council_district')
+
+STRbins <- c(0,10,20,50,100,200,500,1000,2000,3000)
+STRbinpal <- colorBin(heat.colors(9), domain = grouped_STRs$STRs_per_dist, bins = STRbins, reverse = TRUE)
+
+STRlabels <- sprintf(
+  "<strong>%s</strong><br/>%g STRs / mi<sup>2</sup>",
+  grouped_STRs$council_dist, grouped_STRs$STRs_per_dist
+) %>% lapply(htmltools::HTML)
 
