@@ -10,7 +10,7 @@
 library(shiny)
 
 fluidPage(
-  leafletOutput("map"),
+  leafletOutput("map", height = '600px'),
   absolutePanel(top = 10, right = 10,
                 selectInput("Short Term Rentals", "Codes Violations",
                             choices = c("Short Term Rentals", "Codes Violations"))

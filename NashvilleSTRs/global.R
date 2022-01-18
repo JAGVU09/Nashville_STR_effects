@@ -68,3 +68,10 @@ STRlabels <- sprintf(
   grouped_STRs$council_dist, grouped_STRs$STRs_per_dist
 ) %>% lapply(htmltools::HTML)
 
+Violbins <- c(0,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600,6700)
+Violbinpal <- colorBin(heat.colors(12), domain = grouped_viol$Violations_per_dist, bins = Violbins)
+
+Viollabels <- sprintf(
+  "<strong>%s</strong><br/>%g Violations / mi<sup>2</sup>",
+  grouped_viol$council_dist, grouped_viol$Violations_per_dist
+) %>% lapply(htmltools::HTML)
