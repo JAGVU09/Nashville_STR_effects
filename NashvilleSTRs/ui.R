@@ -10,9 +10,29 @@
 library(shiny)
 
 fluidPage(
+  titlePanel("Short Term Rentals and Code Violations"),
   leafletOutput("map", height = '600px'),
   absolutePanel(top = 10, right = 10,
-                selectInput("Short Term Rentals", "Codes Violations",
-                            choices = c("Short Term Rentals", "Codes Violations"))
-))
+                selectInput("strscodes","Short Term Rentals & Codes Violations",
+                            choices = colnames(STRs_Viol_per_district)
+                )
+  ),
+ 
+    fluidRow(
+      column(width = 6,
+             fluidRow(
+               plotOutput("scatter", height = "350px")
+             ),
+             fluidRow(
+               column(
+                 width = 12, offest = 12,
+               
+               htmlOutput("correlation")
+               )
+             )
+      )
+    )
+    
+)
+
 

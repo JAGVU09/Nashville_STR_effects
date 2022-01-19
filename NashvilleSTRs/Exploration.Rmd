@@ -75,10 +75,37 @@ grouped_viol<-Violations %>%
   arrange(desc(Violations_per_dist)) %>% 
   drop_na()
 
-STRs_Viol_per_district<-merge(grouped_STRs, grouped_viol, by = 'council_district')
+STRs_Viol_per_district<-merge(grouped_STRs, grouped_viol, by = 'council_district') %>% 
+  mutate(council_district = as.numeric(council_district))
 ```
 
 
+
+```{r}
+```
+
+
+```{r}
+STRs_Viol_per_district %>% 
+  ggplot(aes(y = STRs_per_dist, x = council_district))+
+  geom_col()
+
+STRs_Viol_per_district %>% 
+  ggplot(aes(y =Violations_per_dist, x = council_district))+
+  geom_col()
+```
+
+
+```{r}
+STRs_Viol_per_district %>% 
+  ggplot(aes(x= Violations_per_dist, y = STRs_per_dist))+
+  geom_point()+
+  geom_smooth(method = 'lm')
+```
+
+```{r}
+
+```
 
 
 
@@ -94,20 +121,20 @@ leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>%
 
 ```{r}
 
-STRbins <- c(0,10,20,50,100,200,500,1000,2000,3000)
-STRbinpal <- colorBin(heat.colors(9), domain = grouped_STRs$STRs_per_dist, bins = STRbins, reverse = TRUE)
+#STRbins <- c(0,10,20,50,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600,6700)
+pal <- colorBin(heat.colors(15), domain = STRs_Viol_per_district$STRs_per_dist, reverse = TRUE)
 
 STRlabels <- sprintf(
   "<strong>%s</strong><br/>%g STRs / mi<sup>2</sup>",
-  grouped_STRs$council_dist, grouped_STRs$STRs_per_dist
+  STRs_Viol_per_district$council_dist, STRs_Viol_per_district$STRs_per_dist
 ) %>% lapply(htmltools::HTML)
 
 
-STRmap<- leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
+STRmap<- leaflet(data = STRs_Viol_per_district, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
   addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
                                   options = providerTileOptions(noWrap = TRUE)) %>% 
   addPolygons(data = council_districts,
-              fillColor = ~STRbinpal(grouped_STRs$STRs_per_dist),
+              fillColor = ~STRbinpal(STRs_Viol_per_district$STRs_per_dist),
               opacity = 0.2,
               dashArray = "3",
               fillOpacity = 0.9,
@@ -123,7 +150,8 @@ STRmap<- leaflet(data = STRs, options = leafletOptions(minZoom = 0, maxZoom = 20
                 textsize = '15px',
                 direction = 'auto'
               )
-              )
+              )%>% 
+      addLegend(pal = pal, values = ~STRs_Viol_per_district$STRs_per_dist,  position = "bottomright")
               
   
 
@@ -132,20 +160,20 @@ STRmap
 
 ```{r}
 
-Violbins <- c(0,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600,6700)
-Violbinpal <- colorBin(heat.colors(12), domain = grouped_viol$Violations_per_dist, bins = Violbins)
+#Violbins <- c(0,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600,6700)
+pal <- colorBin(heat.colors(15), domain = STRs_Viol_per_district$Violations_per_dist, reverse = TRUE)
 
 Viollabels <- sprintf(
   "<strong>%s</strong><br/>%g Violations / mi<sup>2</sup>",
-  grouped_viol$council_dist, grouped_viol$Violations_per_dist
+  STRs_Viol_per_district$council_district, STRs_Viol_per_district$Violations_per_dist
 ) %>% lapply(htmltools::HTML)
 
 
-Violmap<- leaflet(data = Violations, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
+Violmap<- leaflet(data = STRs_Viol_per_district, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
   addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
                                   options = providerTileOptions(noWrap = TRUE)) %>% 
   addPolygons(data = council_districts,
-              fillColor = ~Violbinpal(grouped_viol$Violations_per_dist),
+              fillColor = ~Violbinpal(STRs_Viol_per_district$Violations_per_dist),
               opacity = 0.2,
               dashArray = "3",
               fillOpacity = 0.9,
@@ -161,14 +189,15 @@ Violmap<- leaflet(data = Violations, options = leafletOptions(minZoom = 0, maxZo
                 textsize = '15px',
                 direction = 'auto'
               )
-              )
+              )%>% 
+      addLegend(pal = pal, values = ~STRs_Viol_per_district$Violations_per_dist,  position = "bottomright")
 
 Violmap
 ```
 
 
 ```{r}
-cor(grouped_STRs$STRs_per_dist, grouped_viol$Violations_per_dist)
+cor(STRs_Viol_per_district$STRs_per_dist, STRs_Viol_per_district$Violations_per_dist)
 ```
 
 '1' = 'Bordeaux, Joelton, Whites Creek, Scottsboro'

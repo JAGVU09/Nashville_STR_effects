@@ -5,7 +5,8 @@ library(sf)
 library(leaflet)
 library(geojsonio)
 library(RColorBrewer)
-
+library(shiny)
+library(bslib)
 
 url = 'https://data.nashville.gov/resource/479w-kw2x.json'
 
@@ -58,18 +59,19 @@ grouped_viol<-Violations %>%
   arrange(desc(Violations_per_dist)) %>% 
   drop_na()
 
-STRs_Viol_per_district<-merge(grouped_STRs, grouped_viol, by = 'council_district')
+STRs_Viol_per_district<-merge(grouped_STRs, grouped_viol, by = 'council_district') %>% 
+  mutate(council_district = as.numeric(council_district))
 
-STRbins <- c(0,10,20,50,100,200,500,1000,2000,3000)
-STRbinpal <- colorBin(heat.colors(9), domain = grouped_STRs$STRs_per_dist, bins = STRbins, reverse = TRUE)
+STRbins <- c(0,10,20,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600, 6700)
+STRbinpal <- colorBin(heat.colors(15), domain = STRs_Viol_per_district$STRs_per_dist, bins = STRbins, reverse = TRUE)
 
 STRlabels <- sprintf(
   "<strong>%s</strong><br/>%g STRs / mi<sup>2</sup>",
-  grouped_STRs$council_dist, grouped_STRs$STRs_per_dist
+  STRs_Viol_per_district$council_dist, STRs_Viol_per_district$STRs_per_dist
 ) %>% lapply(htmltools::HTML)
 
-Violbins <- c(0,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600,6700)
-Violbinpal <- colorBin(heat.colors(12), domain = grouped_viol$Violations_per_dist, bins = Violbins)
+Violbins <- c(0,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600, 6700)
+Violbinpal <- colorBin(heat.colors(12), domain = STRs_Viol_per_district$Violations_per_dist, bins = Violbins)
 
 Viollabels <- sprintf(
   "<strong>%s</strong><br/>%g Violations / mi<sup>2</sup>",
