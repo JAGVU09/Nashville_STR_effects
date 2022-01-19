@@ -304,4 +304,8 @@ leaflet(council_districts) %>%
     position = "bottomright")
 
 ```
+```{r}
+ STRs_Viol_per_district %>% 
+      select(STRs_per_dist, Violations_per_dist)
+```
 
