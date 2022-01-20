@@ -25,7 +25,7 @@ shinyServer(function(input, output) {
   }) 
   observe({
     leafletProxy("map", data = filteredData()) %>%
-      addPolygons(data = council_districts,
+      addPolygons(data = council_districts_geo,
                   fillColor = ~colorpal(),
                   opacity = 0.2,
                   dashArray = "3",
@@ -62,5 +62,10 @@ shinyServer(function(input, output) {
     correlation <- cor(STRs_Viol_per_district$STRs_per_dist, STRs_Viol_per_district$Violations_per_dist)%>% round(2)
     paste0('<b>Correlation between Short Term Rentals and Code Violations:</b> ', correlation)
   })
+  output$column <- renderPlot({
+    Districts_pivot%>% 
+      ggplot(aes(y = total, x = council_district, fill = STRs_Violations))+
+      geom_col(position = 'dodge')+
+      scale_x_continuous(breaks = Districts_pivot$council_district)
+  })
 })
-

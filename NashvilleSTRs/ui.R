@@ -17,22 +17,27 @@ fluidPage(
                             choices = colnames(STRs_Viol_per_district)
                 )
   ),
- 
-    fluidRow(
-      column(width = 6,
-             fluidRow(
-               plotOutput("scatter", height = "350px")
-             ),
-             fluidRow(
-               column(
-                 width = 12, offest = 12,
+  
+  fluidRow(
+    column(width = 6,
+           fluidRow(
+             plotOutput("scatter", height = "350px")
+           ),
+           fluidRow(
+             column(
+               width = 12, offest = 12,
                
                htmlOutput("correlation")
-               )
              )
-      )
+             
+           )
+           
     )
-    
+  ),
+  fluidRow(
+    plotOutput('column', height ='350px')
+  )
 )
+
 
 
