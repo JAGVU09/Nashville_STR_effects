@@ -23,13 +23,10 @@ shinyServer(function(input, output) {
       STRs_Viol_per_district$council_dist, input$strscodes
     ) %>% lapply(htmltools::HTML) 
   }) 
-  
-  output$map<-renderLeaflet({
-    STRmap<- leaflet(data = filteredData(), options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
-      addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
-                                      options = providerTileOptions(noWrap = TRUE)) %>% 
+  observe({
+    leafletProxy("map", data = filteredData()) %>%
       addPolygons(data = council_districts,
-                  fillColor = colorpal(),
+                  fillColor = ~colorpal(),
                   opacity = 0.2,
                   dashArray = "3",
                   fillOpacity = 0.9,
@@ -46,7 +43,12 @@ shinyServer(function(input, output) {
                     direction = 'auto'
                   )
       )
-    
+  })
+  
+  output$map<-renderLeaflet({
+    STRmap<- leaflet(data = input$strscodes, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
+      addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
+                                      options = providerTileOptions(noWrap = TRUE))
     
   })
   output$scatter <- renderPlot({
