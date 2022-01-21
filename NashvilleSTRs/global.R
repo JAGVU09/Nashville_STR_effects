@@ -22,7 +22,7 @@ Violations <- content(response, as = 'text') %>%
   fromJSON()%>%
   unnest('mapped_location') %>% 
   mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.)) %>% 
-  mutate(council_district = as.numeric(council_district))%>% 
+  mutate(council_district = as.integer(council_district))%>% 
   mutate(zip = as.numeric(zip))
 
 #write_json(Violations, '../data/Violations.json')
@@ -43,9 +43,10 @@ STRs <- content(response, as = 'text') %>%
   fromJSON() %>% 
   unnest('mapped_location') %>% 
   mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.)) %>% 
-  mutate(council_dist = as.numeric(council_dist)) %>% 
+  mutate(council_dist = as.integer(council_dist)) %>% 
   rename(council_district = council_dist) %>% 
-  mutate(zip = as.numeric(zip))
+  mutate(zip = as.numeric(zip)) %>% 
+  filter(permit_status == 'ISSUED')
 
 #write_json(STRs, '../data/STRs.json')
 

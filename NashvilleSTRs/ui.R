@@ -9,35 +9,52 @@
 
 library(shiny)
 
-fluidPage(
-  titlePanel("Short Term Rentals and Code Violations"),
-  leafletOutput("map", height = '600px'),
-  absolutePanel(top = 10, right = 10,
-                selectInput("strscodes","Short Term Rentals & Codes Violations",
-                            choices = colnames(STRs_Viol_per_district)
-                )
-  ),
-  
-  fluidRow(
-    column(width = 6,
-           fluidRow(
-             plotOutput("scatter", height = "350px")
-           ),
-           fluidRow(
-             column(
-               width = 12, offest = 12,
-               
-               htmlOutput("correlation")
-             )
-             
-           )
-           
-    )
-  ),
-  fluidRow(
-    plotOutput('column', height ='350px')
-  )
-)
 
+shinyUI(fluidPage(
+  
+  theme = bs_theme(bootswatch = 'superhero'),
+  
+  # Application title
+  titlePanel("Short Term Rentals and Code Violations"),
+  
+  # Sidebar with a slider input for number of bins
+  sidebarLayout(
+    sidebarPanel(
+      
+      selectInput("strscodes","Short Term Rentals & Codes Violations",
+                  choices = c('STRs_per_dist', 'Violations_per_dist'),
+                  width='150px'
+      ),
+      
+      actionButton('debug', "Debug")
+    ),
+    
+    # Show a plot of the generated distribution
+    mainPanel(
+      fluidRow(
+        column(width = 7,          
+               plotOutput("column", height = "350px")
+        ),
+        column(width = 5,
+               fluidRow(
+                 plotOutput("scatter", height = "300px")
+               ),
+               fluidRow(
+                 style = "disp lay:flex; justify-content: right; align-items: right; height: 50px;",
+                 htmlOutput("correlation")
+               ),
+               fluidRow(
+                 style = "disp lay:flex; justify-content: left; align-items: left; height: 50px;",
+                 htmlOutput("nuisance")
+               )
+        )
+      ),
+      fluidRow(
+        leafletOutput("map", height = '400px', width = '800px')
+      )
+      
+    )
+  )
+))
 
 

@@ -11,22 +11,26 @@ library(shiny)
 
 shinyServer(function(input, output) {
   
-  filteredData<- reactive({
-    STRs_Viol_per_district 
-  })  
-  colorpal<-reactive({
-    colorBin(heat.colors(14), domain = input$strscodes, reverse = TRUE)
-  })
+  #colorpal<-reactive({
+    #colorBin(heat.colors(14), domain = STRs_Viol_per_district$STRs_per_dist, reverse = TRUE)
+  #})
+  
+  colors<- colorBin(heat.colors(14), domain = STRs_Viol_per_district$STRs_per_dist, reverse = TRUE)
   labels<-reactive({
     sprintf(
-      "<strong>%s</strong><br/>%s STRs / mi<sup>2</sup>",
-      STRs_Viol_per_district$council_dist, input$strscodes
+      "<strong>%s</strong><br/>%s STRs ",
+      STRs_Viol_per_district$council_dist, STRs_Viol_per_district$STRs_per_dist
     ) %>% lapply(htmltools::HTML) 
   }) 
-  observe({
-    leafletProxy("map", data = filteredData()) %>%
+  
+  output$map<-renderLeaflet({
+    STRmap<-STRs_Viol_per_district %>% 
+      select(input$strscodes) %>% 
+      leaflet(options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
+      addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
+                                      options = providerTileOptions(noWrap = TRUE)) %>%
       addPolygons(data = council_districts_geo,
-                  fillColor = ~colorpal(),
+                  fillColor = ~colors(STRs_Viol_per_district$STRs_per_dist),
                   opacity = 0.2,
                   dashArray = "3",
                   fillOpacity = 0.9,
@@ -42,15 +46,8 @@ shinyServer(function(input, output) {
                     textsize = '15px',
                     direction = 'auto'
                   )
-      )
-  })
-  
-  output$map<-renderLeaflet({
-    STRmap<- leaflet(data = input$strscodes, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
-      addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
-                                      options = providerTileOptions(noWrap = TRUE))
     
-  })
+  )})
   output$scatter <- renderPlot({
     STRs_Viol_per_district %>% 
       ggplot(aes(x= Violations_per_dist, y = STRs_per_dist))+
@@ -60,12 +57,27 @@ shinyServer(function(input, output) {
   })
   output$correlation <- renderText({
     correlation <- cor(STRs_Viol_per_district$STRs_per_dist, STRs_Viol_per_district$Violations_per_dist)%>% round(2)
-    paste0('<b>Correlation between Short Term Rentals and Code Violations:</b> ', correlation)
+    paste0('<b>Correlation of STRs and Code Violations:</b> ', correlation)
   })
   output$column <- renderPlot({
-    Districts_pivot%>% 
+    Districts_pivot %>% 
+      mutate(council_district = reorder(council_district, -total)) %>% 
       ggplot(aes(y = total, x = council_district, fill = STRs_Violations))+
       geom_col(position = 'dodge')+
-      scale_x_continuous(breaks = Districts_pivot$council_district)
+      scale_x_discrete(breaks = Districts_pivot$council_district)+
+      theme(legend.position = c(0.9,0.9),
+            legend.title = element_blank(),
+            axis.text.x = element_text(angle = 45))+
+      labs(x = 'Council District',
+           y = 'Total',
+           title = "Number of STRs and Code Violations by District",
+      )
+  })
+    output$nuisance <- renderText({
+      nuisance<-Violations %>%
+        select(reported_problem) %>% 
+        str_count(pattern ='Short Term Rental')
+      paste0('<b># of Nuisance STRs:</b> ', nuisance)
+    
   })
 })
