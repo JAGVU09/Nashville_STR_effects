@@ -15,7 +15,7 @@ shinyServer(function(input, output) {
     #colorBin(heat.colors(14), domain = STRs_Viol_per_district$STRs_per_dist, reverse = TRUE)
   #})
   
-  colors<- colorBin(heat.colors(14), domain = STRs_Viol_per_district$STRs_per_dist, reverse = TRUE)
+  
   labels<-reactive({
     sprintf(
       "<strong>%s</strong><br/>%s STRs ",
@@ -24,13 +24,14 @@ shinyServer(function(input, output) {
   }) 
   
   output$map<-renderLeaflet({
+    colors<- colorBin(heat.colors(14), domain = STRs_Viol_per_district[[input$strscodes]], reverse = TRUE)
     STRmap<-STRs_Viol_per_district %>% 
       select(input$strscodes) %>% 
       leaflet(options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
       addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
                                       options = providerTileOptions(noWrap = TRUE)) %>%
       addPolygons(data = council_districts_geo,
-                  fillColor = ~colors(STRs_Viol_per_district$STRs_per_dist),
+                  fillColor = ~colors(STRs_Viol_per_district[[input$strscodes]]),
                   opacity = 0.2,
                   dashArray = "3",
                   fillOpacity = 0.9,
