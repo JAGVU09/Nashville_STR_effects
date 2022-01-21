@@ -30,7 +30,7 @@ https://data.nashville.gov/resource/wv8u-vs37.geojson
 url = 'https://data.nashville.gov/resource/479w-kw2x.json'
 
 query = list(
-  '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location, zip',
+  '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location, zip, census_tract',
   '$limit' = 90000
 )
 
@@ -229,16 +229,79 @@ STRs_Viol_per_zip %>%
 
 ```{r}
 Violations %>%
-  select(reported_problem) %>% 
+  select(reported_problem, council_district) %>% 
+  group_by(council_district) %>% 
   str_count(pattern ='Short Term Rental')
 
 ```
 
+Edits from Michael and Veronica below
+1. Maybe calculate violations per STR? 
+
+Can you calculate STRs per household in each district using census data or count of domestic APNs from Nashville data? Yes the STR dataset can pull census tract from the API and I can find census_tract data with population number and do a join. Then calculate STRs per household. 
 ```{r}
 STRs_Viol_per_district %>% 
   mutate(STRSperViol = STRs_per_dist/Violations_per_dist) %>% 
   arrange(desc(STRSperViol))
 ```
+What types of violations are happening at the STRs? How can you visualize them?
+  merge STRs and Violations on address? I think address is better. Unless there's a misspelling or variation unaccounted for it seems more realistic. The join on the parcel#/propertyAPN returns a lot more rows but i think it doesn't account for the individual units of a multifamily STR permit (Apartment/duplex) Deleting property APN join. 
+Address_merge
+```{r}
+nuisance_STRs<-left_join(STRs, Violations, by = c('address'="property_address")) %>% 
+  drop_na(reported_problem) %>% 
+  select(permit, parcel, address, date_received, reported_problem, property_apn, council_district.y)
+
+```
+
+```{r}
+nuisance_STRs %>%
+  count(reported_problem) 
+```
+
+
+
+
+
+**Some general info**
+**The STRs will only have data from 5/23/2016 onward. 
+The Violations data set is for 3 years prior to the current date from when the data set was accessed. It may be better to access this through the API so it is current when the app is used. *API CALL COMPLETE*
+
+For STRs & Violations, the address of the permitted STRs also has lat/long in parentheses. I'll need to extract this and make separate columns for mapping purposes. *USING THE API REMEDIED THIS.*
+
+Make a list of the columns from each data set that are absolutely necessary and only pull those using the API. *DONE*
+
+**Council district will be a good column to group by for graphing. UPDATE: pulled in another dataset that has the geometry for the council districts which should make heat mapping easier. I might merge all datasets on the council districts columns.  
+
+**It looks like the types of property violations has a lot of variation in the wording. It might be hard to group by certain types of violations because I may miss some. 
+**Property.APN and Parcel are the same info for the Violations and STRs respectively. 
+  Change these columns to be the same in each dataframe and merge the datasets. 
+  
+** find a list of the council districts 'names' and recode the column...<- not a high priority. *DONE*
+
+** I need to work on a merge that combines the Violations with STRs on the STRs address to get a list of "problematic" STRs. 
+
+DATA EXPLORATION
+
+What is the makeup of districts that have code violations reported?
+pull in a dataset that has median house price for each district?
+
+Heat map with years changing the amount of Code violations over time.
+
+Start Time: 8:30 PM
+End Time: 8:42 PM (12 mins)
+On the ‘Motivation’ slide, make font size consistent; on the ‘Data’ slide, typo (missing space in Inoperable Vehicle) and consider thinning out the list of code violations to what is most relevant for the narrative; on the ‘Datasets’ slide, reduce text to highlights / key points and make font size in titles and body of each box consistent (could probably get rid of the ‘Limitations’ slide as a result); on the ‘Data Summary’ slide, write out the areas (not just the district numbers - e.g. ‘Waterfront Area, Berry Hill, East Nashville’ instead of ‘19, 17, 5’) and add a comma to “~90000” for legibility; Get rid of the slide with the app layout
+
+Maybe make a map that highlights the top areas. Should be relatively straightforward since you’ve already got the shapefiles. +1
+ask for clarification on this. Do you mean only map the top 5 districts instead of all the districts?
+
+On the map, add more clarifying hover text - e.g. “District: 6, Number of STRs: xxx, Violation complaints: x,xxx”
+
+
+
+On the dropdown, remove underscores from variable names, make sure that the legend name is also correctly formatted
+
+State conclusions / findings (i.e. return to data questions and provide answers)
 
 
 
@@ -278,31 +341,3 @@ STRs_Viol_per_district %>%
 '33' = 'Antioch South, Can Ridge'
 '34' = 'Oak Hill, Forest Hills'
 '35' = 'Bellevue'
-
-**Some general info**
-**The STRs will only have data from 5/23/2016 onward. 
-The Violations data set is for 3 years prior to the current date from when the data set was accessed. It may be better to access this through the API so it is current when the app is used. *API CALL COMPLETE*
-
-For STRs & Violations, the address of the permitted STRs also has lat/long in parentheses. I'll need to extract this and make separate columns for mapping purposes. *USING THE API REMEDIED THIS.*
-
-Make a list of the columns from each data set that are absolutely necessary and only pull those using the API. *DONE*
-
-**Council district will be a good column to group by for graphing. UPDATE: pulled in another dataset that has the geometry for the council districts which should make heat mapping easier. I might merge all datasets on the council districts columns.  
-
-**It looks like the types of property violations has a lot of variation in the wording. It might be hard to group by certain types of violations because I may miss some. 
-**Property.APN and Parcel are the same info for the Violations and STRs respectively. 
-  Change these columns to be the same in each dataframe and merge the datasets. 
-  
-** find a list of the council districts 'names' and recode the column...<- not a high priority. *DONE*
-
-** I need to work on a merge that combines the Violations with STRs on the STRs address to get a list of "problematic" STRs. 
-
-DATA EXPLORATION
-
-What is the makeup of districts that have code violations reported?
-pull in a dataset that has median house price for each district?
-
-Heat map with years changing the amount of Code violations over time.
-
-
-

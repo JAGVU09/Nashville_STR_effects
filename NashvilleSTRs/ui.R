@@ -24,9 +24,7 @@ shinyUI(fluidPage(
       selectInput("strscodes","Short Term Rentals & Codes Violations",
                   choices = c('STRs_per_dist', 'Violations_per_dist'),
                   width='150px'
-      ),
-      
-      actionButton('debug', "Debug")
+      )
     ),
     
     # Show a plot of the generated distribution
@@ -50,7 +48,7 @@ shinyUI(fluidPage(
         )
       ),
       fluidRow(
-        leafletOutput("map", height = '400px', width = '800px')
+        leafletOutput("map", height = '400px', width = '1000px')
       )
       
     )
