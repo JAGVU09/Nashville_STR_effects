@@ -44,6 +44,7 @@ shinyServer(function(input, output) {
                     textsize = '15px',
                     direction = 'auto'
                   )
+                    
     
   )})
   output$scatter <- renderPlot({
@@ -71,8 +72,8 @@ shinyServer(function(input, output) {
            title = "Number of STRs and Code Violations by District",
       )
   })
-    output$wordcloud <- renderPlot({
-      wordcloud(tokens_clean$word, tokens_clean$n, random.order = FALSE, max.words = 50, colors=wordpal)
+    output$wordcloud <- renderWordcloud2({
+      wordcloud2(tokens_clean)
     
   })
 })

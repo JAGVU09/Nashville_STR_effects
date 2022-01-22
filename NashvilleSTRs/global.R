@@ -15,6 +15,7 @@ library(wordcloud) # to render wordclouds
 library(knitr) # for tables
 library(DT) # for dynamic tables
 library(tidyr)
+library(wordcloud2)
 
 #API call for Code Violations
 url = 'https://data.nashville.gov/resource/479w-kw2x.json'
@@ -108,10 +109,15 @@ nums <- tokens_clean %>% filter(str_detect(word, "^[0-9]")) %>% select(word) %>%
 tokens_clean <- tokens_clean %>% 
   anti_join(nums, by = "word")
 
-uni_sw <- data.frame(word = c("ave", "dr", "hotline", "st", "https", "cir", "ln", "hwy", "ct", "blvd", "rd", "pl"))
+uni_sw <- data.frame(word = c("ave", "dr", "hotline", "st", "https", "cir", "ln",
+                              "hwy", "ct", "blvd", "rd", "pl" ,"description","comments",
+                              "type","type","property","violations","short","term","rental","complaint", "description"))
 
 tokens_clean <- tokens_clean %>% 
-  anti_join(uni_sw, by = "word")
+  anti_join(uni_sw, by = "word") %>% 
+  top_n(50)
 
 wordpal <- brewer.pal(8,"Dark2")
+
+
 

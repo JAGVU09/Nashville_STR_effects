@@ -31,11 +31,11 @@ shinyUI(fluidPage(
                   tabPanel('Column', plotOutput("column", height = "400px")),
                   tabPanel("Scatter", plotOutput("scatter", height = "400px"),
                            fluidRow(
-                             style = "disp lay:flex; justify-content: right; align-items: right; height: 50px;",
+                             style = "display:flex; justify-content: right; align-items: right; height: 50px;",
                              htmlOutput("correlation")
                            ),
                   ),
-                  tabPanel("Word Cloud"), plotOutput("wordcloud", width = '400px', height = "400px"))
+                  tabPanel("Word Cloud", wordcloud2Output("wordcloud", width = '400px', height = "400px")))
       
     )
   )

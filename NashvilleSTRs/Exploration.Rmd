@@ -271,6 +271,31 @@ nuisance_STRs<-left_join(STRs, Violations, by = c('address'="property_address"))
 ```
 
 ```{r}
+top_10<-left_join(STRs, Violations, by = c('address'="property_address")) %>% 
+  drop_na(reported_problem) %>% 
+  select(permit, parcel, address, date_received, reported_problem, property_apn, council_district.y) %>% 
+  rename('council_district' = 'council_district.y')%>% 
+  count(address) %>% 
+  top_n(10)
+
+top_10 %>% 
+#  mutate(address = reorder(council_district, n))
+  ggplot(aes(x=address, y =n))+
+  geom_col()+
+  theme(legend.position = c(0.9,0.9),
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45))+
+  labs(x = 'Address of STR',
+       y = 'Total complaints',
+       title = "Nuisance STRs",
+       )
+  
+```
+
+
+
+
+```{r}
 tidy_dat <- tidyr::gather(nuisance_STRs, key, word) %>% select(word)
 
 tokens <- tidy_dat %>% 
@@ -287,10 +312,11 @@ nums <- tokens_clean %>% filter(str_detect(word, "^[0-9]")) %>% select(word) %>%
 tokens_clean <- tokens_clean %>% 
   anti_join(nums, by = "word")
 
-uni_sw <- data.frame(word = c("ave", "dr", "hotline", "st", "https", "cir", "ln", "hwy", "ct", "blvd", "rd", "pl"))
+uni_sw <- data.frame(word = c("ave", "dr", "hotline", "st", "https", "cir", "ln", "hwy", "ct", "blvd", "rd", "pl","description","comments", "type"))
 
 tokens_clean <- tokens_clean %>% 
-  anti_join(uni_sw, by = "word")
+  anti_join(uni_sw, by = "word")%>% 
+  top_n(50)
 
 wordpal <- brewer.pal(8,"Dark2")
 
