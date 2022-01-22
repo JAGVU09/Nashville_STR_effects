@@ -11,15 +11,12 @@ library(shiny)
 
 shinyServer(function(input, output) {
   
-  #colorpal<-reactive({
-    #colorBin(heat.colors(14), domain = STRs_Viol_per_district$STRs_per_dist, reverse = TRUE)
-  #})
-  
+ 
   
   labels<-reactive({
     sprintf(
-      "<strong>%s</strong><br/>%s STRs ",
-      STRs_Viol_per_district$council_dist, STRs_Viol_per_district$STRs_per_dist
+      "<strong>Council District: %s</strong><br/> Number of STRs: %s <br/>  Number of Violations: %s",
+      STRs_Viol_per_district$council_dist, STRs_Viol_per_district$STRs, STRs_Viol_per_district$Violations
     ) %>% lapply(htmltools::HTML) 
   }) 
   
@@ -51,13 +48,13 @@ shinyServer(function(input, output) {
   )})
   output$scatter <- renderPlot({
     STRs_Viol_per_district %>% 
-      ggplot(aes(x= Violations_per_dist, y = STRs_per_dist))+
+      ggplot(aes(x= Violations, y = STRs))+
       geom_point()+
       geom_smooth(method = 'lm')+
       labs(title = 'Violations vs Short Term Rentals', x = "Violations", y = "Short Term Rentals" )
   })
   output$correlation <- renderText({
-    correlation <- cor(STRs_Viol_per_district$STRs_per_dist, STRs_Viol_per_district$Violations_per_dist)%>% round(2)
+    correlation <- cor(STRs_Viol_per_district$STRs, STRs_Viol_per_district$Violations)%>% round(2)
     paste0('<b>Correlation of STRs and Code Violations:</b> ', correlation)
   })
   output$column <- renderPlot({
@@ -74,11 +71,8 @@ shinyServer(function(input, output) {
            title = "Number of STRs and Code Violations by District",
       )
   })
-    output$nuisance <- renderText({
-      nuisance<-Violations %>%
-        select(reported_problem) %>% 
-        str_count(pattern ='Short Term Rental')
-      paste0('<b># of Nuisance STRs:</b> ', nuisance)
+    output$wordcloud <- renderPlot({
+      wordcloud(tokens_clean$word, tokens_clean$n, random.order = FALSE, max.words = 50, colors=wordpal)
     
   })
 })

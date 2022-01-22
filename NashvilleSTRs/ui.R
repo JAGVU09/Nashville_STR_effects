@@ -15,44 +15,37 @@ shinyUI(fluidPage(
   theme = bs_theme(bootswatch = 'superhero'),
   
   # Application title
-  titlePanel("Short Term Rentals and Code Violations"),
   
-  # Sidebar with a slider input for number of bins
+  titlePanel("Short Term Rental and Code Violations"),
+  
   sidebarLayout(
     sidebarPanel(
-      
       selectInput("strscodes","Short Term Rentals & Codes Violations",
-                  choices = c('STRs_per_dist', 'Violations_per_dist'),
+                  choices = c('STRs', 'Violations'),
                   width='150px'
       )
     ),
-    
-    # Show a plot of the generated distribution
     mainPanel(
-      fluidRow(
-        column(width = 7,          
-               plotOutput("column", height = "350px")
-        ),
-        column(width = 5,
-               fluidRow(
-                 plotOutput("scatter", height = "300px")
-               ),
-               fluidRow(
-                 style = "disp lay:flex; justify-content: right; align-items: right; height: 50px;",
-                 htmlOutput("correlation")
-               ),
-               fluidRow(
-                 style = "disp lay:flex; justify-content: left; align-items: left; height: 50px;",
-                 htmlOutput("nuisance")
-               )
-        )
-      ),
-      fluidRow(
-        leafletOutput("map", height = '400px', width = '1000px')
-      )
+      tabsetPanel(type = 'tabs',
+                  tabPanel("Map", leafletOutput("map", width = '600px', height = '600px')),
+                  tabPanel('Column', plotOutput("column", height = "400px")),
+                  tabPanel("Scatter", plotOutput("scatter", height = "400px"),
+                           fluidRow(
+                             style = "disp lay:flex; justify-content: right; align-items: right; height: 50px;",
+                             htmlOutput("correlation")
+                           ),
+                  ),
+                  tabPanel("Word Cloud"), plotOutput("wordcloud", width = '400px', height = "400px"))
       
     )
   )
-))
+)
+)
+
+
+
+
+
+
 
 

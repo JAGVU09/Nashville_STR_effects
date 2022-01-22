@@ -188,11 +188,11 @@ STRmap
 ```{r}
 
 #Violbins <- c(0,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600,6700)
-pal <- colorBin(heat.colors(15), domain = STRs_Viol_per_district$Violations_per_dist, reverse = TRUE)
+pal <- colorBin(heat.colors(15), domain = STRs_Viol_per_district$Violations, reverse = TRUE)
 
 Viollabels <- sprintf(
-  "<strong>%s</strong><br/>%g Violations / mi<sup>2</sup>",
-  STRs_Viol_per_district$council_district, STRs_Viol_per_district$Violations_per_dist
+  "<strong>Council District: %s</strong> <br/> Number of STRs: %s</br>  number of violations%s",
+  STRs_Viol_per_district$council_district, STRs_Viol_per_district$Violations, STRs_Viol_per_district$STRs
 ) %>% lapply(htmltools::HTML)
 
 
@@ -200,7 +200,7 @@ Violmap<- leaflet(data = STRs_Viol_per_district, options = leafletOptions(minZoo
   addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
                                   options = providerTileOptions(noWrap = TRUE)) %>% 
   addPolygons(data = council_districts_geo,
-              fillColor = ~pal(STRs_Viol_per_district$Violations_per_dist),
+              fillColor = ~pal(STRs_Viol_per_district$Violations),
               opacity = 0.2,
               dashArray = "3",
               fillOpacity = 0.9,
@@ -217,7 +217,7 @@ Violmap<- leaflet(data = STRs_Viol_per_district, options = leafletOptions(minZoo
                 direction = 'auto'
               )
               )%>% 
-      addLegend(pal = pal, values = ~STRs_Viol_per_district$Violations_per_dist,  position = "bottomright")
+      addLegend(pal = pal, values = ~STRs_Viol_per_district$Violations,  position = "bottomright")
 
 Violmap
 ```
@@ -264,12 +264,7 @@ Address_merge
 nuisance_STRs<-left_join(STRs, Violations, by = c('address'="property_address")) %>% 
   drop_na(reported_problem) %>% 
   select(permit, parcel, address, date_received, reported_problem, property_apn, council_district.y) %>% 
-  rename('council_district' = 'council_district.y')
-
-```
-
-```{r}
-nuisance_STRs %>%
+  rename('council_district' = 'council_district.y') %>% 
   group_by(council_district) %>% 
   count(reported_problem) %>% 
   arrange(desc(n))
@@ -282,9 +277,7 @@ tokens <- tidy_dat %>%
   unnest_tokens(word, word) %>% 
   dplyr::count(word, sort = TRUE) %>% 
   ungroup() 
-```
 
-```{r}
 data("stop_words")
 tokens_clean <- tokens %>%
   anti_join(stop_words)
@@ -301,8 +294,7 @@ tokens_clean <- tokens_clean %>%
 
 wordpal <- brewer.pal(8,"Dark2")
 
-tokens_clean %>% 
-  with(wordcloud(word, n, random.order = FALSE, max.words = 50, colors=wordpal))
+wordcloud(tokens_clean$word, tokens_clean$n, random.order = FALSE, max.words = 50, colors=wordpal)
 ```
 
 

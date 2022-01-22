@@ -7,6 +7,14 @@ library(geojsonio)
 library(RColorBrewer)
 library(shiny)
 library(bslib)
+library(shinythemes)
+library(dplyr) # for data wrangling
+library(tidytext) # for NLP
+library(stringr) # to deal with strings
+library(wordcloud) # to render wordclouds
+library(knitr) # for tables
+library(DT) # for dynamic tables
+library(tidyr)
 
 #API call for Code Violations
 url = 'https://data.nashville.gov/resource/479w-kw2x.json'
@@ -59,18 +67,51 @@ council_districts_geo<-geojson_read(url, what ='sp')
 by_council_STRs<-STRs %>%
   group_by(council_district) %>% 
   tally() %>% 
-  rename(STRs_per_dist = n) %>% 
-  arrange(desc(STRs_per_dist)) %>% 
+  rename(STRs = n) %>% 
+  arrange(desc(STRs)) %>% 
   drop_na()
 
 by_council_viol<-Violations %>% 
   group_by(council_district) %>% 
   tally() %>% 
-  rename(Violations_per_dist = n) %>% 
-  arrange(desc(Violations_per_dist)) %>% 
+  rename(Violations = n) %>% 
+  arrange(desc(Violations)) %>% 
   drop_na()
 
 #Merge STRs and Code Violations data sets for maps. Work on a spatial merge for the council districts 
 STRs_Viol_per_district<-merge(by_council_STRs, by_council_viol, by = 'council_district')
 
 Districts_pivot<-pivot_longer(STRs_Viol_per_district, cols = 2:3, names_to ="STRs_Violations", values_to = "total")
+
+#create a nuisance STRs dataframe for word cloud
+nuisance_STRs<-left_join(STRs, Violations, by = c('address'="property_address")) %>% 
+  drop_na(reported_problem) %>% 
+  select(permit, parcel, address, date_received, reported_problem, property_apn, council_district.y) %>% 
+  rename('council_district' = 'council_district.y') %>% 
+  group_by(council_district) %>% 
+  count(reported_problem) %>% 
+  arrange(desc(n))
+
+tidy_dat <- tidyr::gather(nuisance_STRs, key, word) %>% select(word)
+
+tokens <- tidy_dat %>% 
+  unnest_tokens(word, word) %>% 
+  dplyr::count(word, sort = TRUE) %>% 
+  ungroup() 
+
+data("stop_words")
+tokens_clean <- tokens %>%
+  anti_join(stop_words)
+
+nums <- tokens_clean %>% filter(str_detect(word, "^[0-9]")) %>% select(word) %>% unique()
+
+tokens_clean <- tokens_clean %>% 
+  anti_join(nums, by = "word")
+
+uni_sw <- data.frame(word = c("ave", "dr", "hotline", "st", "https", "cir", "ln", "hwy", "ct", "blvd", "rd", "pl"))
+
+tokens_clean <- tokens_clean %>% 
+  anti_join(uni_sw, by = "word")
+
+wordpal <- brewer.pal(8,"Dark2")
+
