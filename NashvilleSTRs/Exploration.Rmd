@@ -1,0 +1,438 @@
+---
+title: "Exploration"
+author: "James Gilbert"
+date: "12/21/2021"
+output: html_document
+---
+```{r}
+library(httr)
+library(tidyverse)
+library(jsonlite)
+library(sf)
+library(leaflet)
+library(geojsonio)
+library(dplyr) # for data wrangling
+library(tidytext) # for NLP
+library(stringr) # to deal with strings
+library(wordcloud) # to render wordclouds
+library(knitr) # for tables
+library(DT) # for dynamic tables
+library(tidyr)
+```
+Property Violations API URL
+https://data.nashville.gov/resource/479w-kw2x.json
+
+STRs API URL
+https://data.nashville.gov/resource/2z82-v8pm.json
+
+Council Districts spatial data URL
+https://data.nashville.gov/resource/iw7r-m8qr.geojson
+
+Zip Code spatial data URL
+https://data.nashville.gov/resource/wv8u-vs37.geojson
+
+
+```{r}
+#API call for Code Violations
+url = 'https://data.nashville.gov/resource/479w-kw2x.json'
+
+query = list(
+  '$select'= 'request,date_received,property_apn,property_address,reported_problem,council_district,mapped_location, zip',
+  '$limit' = 90000
+)
+
+response<- GET(url, query=query)
+
+Violations <- content(response, as = 'text') %>% 
+  fromJSON() %>%
+  unnest('mapped_location') %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.)) %>% 
+  mutate(council_district = as.integer(council_district)) %>% 
+  mutate(zip = as.numeric(zip))
+  
+
+#write_json(Violations, '../data/Violations.json')
+
+
+#API call for Short Term Rentals
+url = 'https://data.nashville.gov/resource/2z82-v8pm.json'
+
+query = list(
+  '$select'= 'permit, permit_status, parcel, address, council_dist, mapped_location,zip, census_tract',
+  '$limit' = 13000
+)
+
+response <- GET(url, query = query)
+
+#clean up the columns
+STRs <- content(response, as = 'text') %>% 
+  fromJSON() %>% 
+  unnest('mapped_location') %>% 
+  mutate_at(.vars = c('latitude', 'longitude'), ~as.numeric(.)) %>% 
+  mutate(council_dist = as.integer(council_dist)) %>% 
+  rename(council_district = council_dist) %>% 
+  mutate(zip = as.numeric(zip)) %>% 
+  filter(permit_status == 'ISSUED')
+
+#write_json(STRs, '../data/STRs.json')
+
+#API call for geospatial data for council districts
+url = 'https://data.nashville.gov/resource/iw7r-m8qr.geojson'
+
+council_districts_geo<-geojson_read(url, what ='sp')
+
+#Further cleaning
+by_council_STRs<-STRs %>%
+  group_by(council_district) %>% 
+  tally() %>% 
+  rename(STRs_per_dist = n) %>% 
+  drop_na()
+
+by_council_viol<-Violations %>% 
+  group_by(council_district) %>% 
+  tally() %>% 
+  rename(Violations_per_dist = n) %>%
+  drop_na()
+
+#Merge STRs and Code Violations data sets for maps. Work on a spatial merge for the council districts 
+STRs_Viol_per_district<-merge(by_council_STRs, by_council_viol, by = 'council_district')
+
+Districts_pivot<-pivot_longer(STRs_Viol_per_district, cols = 2:3, names_to ="STRs_Violations", values_to = "total")
+
+STRs_Viol_per_district<-nuisance_STRs %>% 
+  group_by(council_district) %>% 
+  tally() %>% 
+  rename(nuisance_STRs = n) %>% 
+  right_join(STRs_Viol_per_district, nuisance_STRs, by = "council_district") %>% 
+  mutate_if(is.integer , replace_na, replace = 0)
+
+STRs_Viol_per_district<-STRs_Viol_per_district %>% 
+  mutate(across(where(is.numeric), as.integer))
+```
+
+```{r}
+STRs_Viol_per_district %>% 
+  mutate(across(where(is.numeric), as.integer))
+str(STRs_Viol_per_district)
+```
+
+
+
+```{r}
+nuisance_STRs %>% 
+  group_by(council_district) %>% 
+  tally() %>% 
+  rename(nuisance_STRs = n) %>% 
+  right_join(STRs_Viol_per_district, nuisance_STRs, by = "council_district") %>% 
+  mutate_if(is.integer, replace_na, replace = 0)
+  
+
+```
+
+```{r}
+STRs_Viol_per_district %>% 
+  mutate_if(is.integer , replace_na, replace = 0)
+```
+
+
+```{r}
+str(nuisance_STRs)
+```
+
+
+```{r}
+
+Districts_pivot %>% 
+  mutate(council_district = reorder(council_district, -total)) %>% 
+  ggplot(aes(y = total, x = council_district, fill = STRs_Violations))+
+  geom_col(position = 'dodge')+
+  scale_x_discrete(breaks = Districts_pivot$council_district)+
+  theme(legend.position = c(0.9,0.9),
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45))+
+  labs(x = 'Council District',
+       y = 'Total',
+       title = "Number of STRs and Code Violations by District",
+       )
+
+```
+
+```{r}
+Districts_pivot%>% 
+  ggplot(aes(x= council_district, y = STRs_Violations))+
+  geom_point()+
+  geom_smooth(method = 'lm')
+```
+
+
+
+```{r}
+STRs_Viol_per_district %>% 
+  ggplot(aes(x= Violations_per_dist, y = STRs_per_dist))+
+  geom_point()+
+  geom_smooth(method = 'lm')
+```
+
+```{r}
+
+```
+
+
+```{r}
+
+#STRbins <- c(0,10,20,50,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600,6700)
+pal <- colorBin(heat.colors(15), domain = STRs_Viol_per_district$STRs_per_dist, reverse = TRUE)
+
+STRlabels <- sprintf(
+  "<strong>%s</strong><br/>%s STRs per district, %s",
+  STRs_Viol_per_district$council_dist, STRs_Viol_per_district$STRs_per_dist, STRs_Viol_per_district$nuisance_STRs
+) %>% sapply(htmltools::HTML)
+
+
+STRmap<- leaflet(data = STRs_Viol_per_district, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
+  addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
+                                  options = providerTileOptions(noWrap = TRUE)) %>% 
+  addPolygons(data = council_districts_geo,
+              fillColor = ~pal(STRs_Viol_per_district$STRs_per_dist),
+              opacity = 0.2,
+              dashArray = "3",
+              fillOpacity = 0.9,
+              highlightOptions = highlightOptions(
+                weight = 5,
+                color = '#666',
+                dashArray = "",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              label = STRlabels,
+              labelOptions = labelOptions(
+                style = list('font-weight' = 'normal', padding = '3px 8px'),
+                textsize = '15px',
+                direction = 'auto'
+              )
+              )%>% 
+      addLegend(pal = pal, values = ~STRs_Viol_per_district$STRs_per_dist,  position = "bottomright")
+              
+  
+
+STRmap
+```
+
+```{r}
+
+#Violbins <- c(0,100,200,400,700,1100,1600,2200,2900,3700,4600, 5600,6700)
+pal <- colorBin(heat.colors(15), domain = STRs_Viol_per_district$Violations, reverse = TRUE)
+
+Viollabels <- sprintf(
+  "<strong>Council District: %s</strong> <br/> Number of STRs: %s</br>  number of violations%s",
+  STRs_Viol_per_district$council_district, STRs_Viol_per_district$Violations, STRs_Viol_per_district$STRs
+) %>% lapply(htmltools::HTML)
+
+
+Violmap<- leaflet(data = STRs_Viol_per_district, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 
+  addTiles() %>% addProviderTiles(providers$Stamen.TonerLite,
+                                  options = providerTileOptions(noWrap = TRUE)) %>% 
+  addPolygons(data = council_districts_geo,
+              fillColor = ~pal(STRs_Viol_per_district$Violations),
+              opacity = 0.2,
+              dashArray = "3",
+              fillOpacity = 0.9,
+              highlightOptions = highlightOptions(
+                weight = 5,
+                color = '#666',
+                dashArray = "",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              label = Viollabels,
+              labelOptions = labelOptions(
+                style = list('font-weight' = 'normal', padding = '3px 8px'),
+                textsize = '15px',
+                direction = 'auto'
+              )
+              )%>% 
+      addLegend(pal = pal, values = ~STRs_Viol_per_district$Violations,  position = "bottomright")
+
+Violmap
+```
+
+
+```{r}
+cor(STRs_Viol_per_district$STRs_per_dist, STRs_Viol_per_district$Violations_per_dist)
+cor(STRs_Viol_per_zip$STRs_per_zip, STRs_Viol_per_zip$Violations_per_zip)
+```
+
+
+```{r}
+STRs_Viol_per_zip %>% 
+  select(zip,Violations_per_zip) %>% 
+  top_n(3)
+```
+
+```{r}
+Violations %>%
+  select(reported_problem, council_district) %>% 
+  group_by(council_district) %>% 
+  str_count(pattern ='Short Term Rental')
+
+```
+
+Edits from Michael and Veronica below
+1. Maybe calculate violations per STR? *DONE*
+
+Can you calculate STRs per household in each district using census data or count of domestic APNs from Nashville data? Yes the STR dataset can pull census tract from the API and I can find census_tract data with population number and do a join. Then calculate STRs per household. 
+```{r}
+STRs_Viol_per_district %>% 
+  mutate(STRSperViol = STRs_per_dist/Violations_per_dist) %>% 
+  arrange(desc(STRSperViol))
+```
+
+
+
+
+
+What types of violations are happening at the STRs? How can you visualize them?
+  merge STRs and Violations on address? I think address is better. Unless there's a misspelling or variation unaccounted for it seems more realistic. The join on the parcel#/propertyAPN returns a lot more rows but i think it doesn't account for the individual units of a multifamily STR permit (Apartment/duplex) Deleting property APN join. 
+Address_merge
+```{r}
+nuisance_STRs<-left_join(STRs, Violations, by = c('address'="property_address")) %>% 
+  drop_na(reported_problem) %>% 
+  select(permit, parcel, address, date_received, reported_problem, property_apn, council_district.y) %>% 
+  rename('council_district' = 'council_district.y') %>% 
+  group_by(council_district) %>% 
+  count(reported_problem) %>% 
+  arrange(desc(n))
+```
+
+```{r}
+top_10<-left_join(STRs, Violations, by = c('address'="property_address")) %>% 
+  drop_na(reported_problem) %>% 
+  select(permit, parcel, address, date_received, reported_problem, property_apn, council_district.y) %>% 
+  rename('council_district' = 'council_district.y')%>% 
+  count(address) %>% 
+  top_n(10)
+
+top_10 %>% 
+#  mutate(address = reorder(council_district, n))
+  ggplot(aes(x=address, y =n))+
+  geom_col()+
+  theme(legend.position = c(0.9,0.9),
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45))+
+  labs(x = 'Address of STR',
+       y = 'Total complaints',
+       title = "Nuisance STRs",
+       )
+  
+```
+
+
+
+
+```{r}
+tidy_dat <- tidyr::gather(nuisance_STRs, key, word) %>% select(word)
+
+tokens <- tidy_dat %>% 
+  unnest_tokens(word, word) %>% 
+  dplyr::count(word, sort = TRUE) %>% 
+  ungroup() 
+
+data("stop_words")
+tokens_clean <- tokens %>%
+  anti_join(stop_words)
+
+nums <- tokens_clean %>% filter(str_detect(word, "^[0-9]")) %>% select(word) %>% unique()
+
+tokens_clean <- tokens_clean %>% 
+  anti_join(nums, by = "word")
+
+uni_sw <- data.frame(word = c("ave", "dr", "hotline", "st", "https", "cir", "ln", "hwy", "ct", "blvd", "rd", "pl","description","comments", "type"))
+
+tokens_clean <- tokens_clean %>% 
+  anti_join(uni_sw, by = "word")%>% 
+  top_n(50)
+
+wordpal <- brewer.pal(8,"Dark2")
+
+wordcloud(tokens_clean$word, tokens_clean$n, random.order = FALSE, max.words = 50, colors=wordpal)
+```
+
+
+
+
+**Some general info**
+**The STRs will only have data from 5/23/2016 onward. 
+The Violations data set is for 3 years prior to the current date from when the data set was accessed. It may be better to access this through the API so it is current when the app is used. *API CALL COMPLETE*
+
+For STRs & Violations, the address of the permitted STRs also has lat/long in parentheses. I'll need to extract this and make separate columns for mapping purposes. *USING THE API REMEDIED THIS.*
+
+Make a list of the columns from each data set that are absolutely necessary and only pull those using the API. *DONE*
+
+**Council district will be a good column to group by for graphing. UPDATE: pulled in another dataset that has the geometry for the council districts which should make heat mapping easier. I might merge all datasets on the council districts columns.  
+
+**It looks like the types of property violations has a lot of variation in the wording. It might be hard to group by certain types of violations because I may miss some. 
+**Property.APN and Parcel are the same info for the Violations and STRs respectively. 
+  Change these columns to be the same in each dataframe and merge the datasets. 
+  
+** find a list of the council districts 'names' and recode the column...<- not a high priority. *DONE*
+
+** I need to work on a merge that combines the Violations with STRs on the STRs address to get a list of "problematic" STRs. 
+
+DATA EXPLORATION
+
+What is the makeup of districts that have code violations reported?
+pull in a dataset that has median house price for each district?
+
+Heat map with years changing the amount of Code violations over time.
+
+Start Time: 8:30 PM
+End Time: 8:42 PM (12 mins)
+On the ‘Motivation’ slide, make font size consistent; on the ‘Data’ slide, typo (missing space in Inoperable Vehicle) and consider thinning out the list of code violations to what is most relevant for the narrative; on the ‘Datasets’ slide, reduce text to highlights / key points and make font size in titles and body of each box consistent (could probably get rid of the ‘Limitations’ slide as a result); on the ‘Data Summary’ slide, write out the areas (not just the district numbers - e.g. ‘Waterfront Area, Berry Hill, East Nashville’ instead of ‘19, 17, 5’) and add a comma to “~90000” for legibility; Get rid of the slide with the app layout
+
+Maybe make a map that highlights the top areas. Should be relatively straightforward since you’ve already got the shapefiles. +1
+ask for clarification on this. Do you mean only map the top 5 districts instead of all the districts?
+
+On the map, add more clarifying hover text - e.g. “District: 6, Number of STRs: xxx, Violation complaints: x,xxx”
+
+
+
+On the dropdown, remove underscores from variable names, make sure that the legend name is also correctly formatted
+
+State conclusions / findings (i.e. return to data questions and provide answers)
+
+
+
+
+'1' = 'Bordeaux, Joelton, Whites Creek, Scottsboro'
+'2' = 'North Nashville, Bordeaux, Metro Center'
+'3' = 'Brick Church, Goodlettseville, Madison, Whites Creek'
+'4' = 'Brentwood'
+'5' = 'East Nashville, Cleveland Park, Maxwell Heights'
+'6' = 'East Nashville, Lockland Springs, Rosebank'
+'7' = 'East Nashville, West Inglewood, Madison, District 7'
+'8' = 'East Nashville, East Inglewood, Madison, District 8'
+'9' = 'Madison, Neely's Bend'
+'10' = 'Goodlettsville, Madison'
+'11' = 'Old Hickory, Hermitage'
+'12' = 'Hermitage'
+'13' = 'Donelson, Airport'
+'14' = 'Donelson, Hermitage'
+'15' = 'Donelson, Opryland'
+'16' = 'South Nashville, Woodbine'
+'17' = 'South Nashville, Fairgrounds, Berry Hill, 12 South'
+'18' = 'South Nashville, Waverly-Belmont, Vanderbilt'
+'19' = 'North Nashville, South Nashville, Downtown'
+'20' = 'West Nashville, The Nations, Cockrill Bend'
+'21' = 'North Nashville, West End, Midtown, TSU'
+'22' = 'West Nashville, Bellevue'
+'23' = 'West Nashville, Belle Meade'
+'24' = 'West Nashville, Sylvan Park'
+'25' = 'Oak Hill, Green Hills'
+'26' = 'Crieve Hall, Paragon Mills'
+'27' = 'Southeast Nashville, Tusculum'
+'28' = 'Southeast Nashville, Antioch'
+'29' = 'Antioch Norht-Priest Lake'
+'30' = 'Haywood-Tusculum'
+'31' = 'Antioch West, Cane Ridge'
+'32' = 'Antioch Central'
+'33' = 'Antioch South, Can Ridge'
+'34' = 'Oak Hill, Forest Hills'
+'35' = 'Bellevue'
