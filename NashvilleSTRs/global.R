@@ -8,12 +8,9 @@ library(RColorBrewer)
 library(shiny)
 library(bslib)
 library(shinythemes)
-library(dplyr) # for data wrangling
-library(tidytext) # for NLP
-library(stringr) # to deal with strings
-library(wordcloud) # to render wordclouds
-library(knitr) # for tables
-library(DT) # for dynamic tables
+library(dplyr) 
+library(tidytext) 
+library(stringr) 
 library(tidyr)
 library(wordcloud2)
 
@@ -93,6 +90,7 @@ nuisance_STRs<-left_join(STRs, Violations, by = c('address'="property_address"))
   count(reported_problem) %>% 
   arrange(desc(n))
 
+#create data frame for wordcloud from STRs complaints. 
 tidy_dat <- tidyr::gather(nuisance_STRs, key, word) %>% select(word)
 
 tokens <- tidy_dat %>% 
@@ -100,24 +98,25 @@ tokens <- tidy_dat %>%
   dplyr::count(word, sort = TRUE) %>% 
   ungroup() 
 
+#remove stop words like "a" "The" 
 data("stop_words")
 tokens_clean <- tokens %>%
   anti_join(stop_words)
 
+#Remove numbers 
 nums <- tokens_clean %>% filter(str_detect(word, "^[0-9]")) %>% select(word) %>% unique()
 
 tokens_clean <- tokens_clean %>% 
   anti_join(nums, by = "word")
 
+#Removal of selected words not included in stop words or in every complaint. 
 uni_sw <- data.frame(word = c("ave", "dr", "hotline", "st", "https", "cir", "ln",
                               "hwy", "ct", "blvd", "rd", "pl" ,"description","comments",
                               "type","type","property","violations","short","term","rental","complaint", "description"))
 
 tokens_clean <- tokens_clean %>% 
   anti_join(uni_sw, by = "word") %>% 
-  top_n(50)
+  top_n(100)
 
+#Color words
 wordpal <- brewer.pal(8,"Dark2")
-
-
-

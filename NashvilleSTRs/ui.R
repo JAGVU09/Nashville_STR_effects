@@ -11,13 +11,8 @@ library(shiny)
 
 
 shinyUI(fluidPage(
-  
   theme = bs_theme(bootswatch = 'superhero'),
-  
-  # Application title
-  
   titlePanel("Short Term Rental and Code Violations"),
-  
   sidebarLayout(
     sidebarPanel(
       selectInput("strscodes","Short Term Rentals & Codes Violations",
@@ -27,25 +22,20 @@ shinyUI(fluidPage(
     ),
     mainPanel(
       tabsetPanel(type = 'tabs',
-                  tabPanel("Map", leafletOutput("map", width = '600px', height = '600px')),
-                  tabPanel('Column', plotOutput("column", height = "400px")),
-                  tabPanel("Scatter", plotOutput("scatter", height = "400px"),
+                  tabPanel("Map", leafletOutput("map", width = '900px', height = '600px')),
+                  tabPanel('Column', plotOutput("column", height = "600px")),
+                  tabPanel("Scatter", plotOutput("scatter", height = "600px"),
                            fluidRow(
-                             style = "display:flex; justify-content: right; align-items: right; height: 50px;",
+                             style = "display:flex;
+                             justify-content: right;
+                             align-items: right;
+                             height: 50px;",
                              htmlOutput("correlation")
                            ),
                   ),
-                  tabPanel("Word Cloud", wordcloud2Output("wordcloud", width = '400px', height = "400px")))
+                  tabPanel("Word Cloud", wordcloud2Output("wordcloud", width = '600px', height = "600px")))
       
     )
   )
 )
 )
-
-
-
-
-
-
-
-

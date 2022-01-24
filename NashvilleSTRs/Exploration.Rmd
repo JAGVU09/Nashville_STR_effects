@@ -86,14 +86,12 @@ by_council_STRs<-STRs %>%
   group_by(council_district) %>% 
   tally() %>% 
   rename(STRs_per_dist = n) %>% 
-  arrange(desc(STRs_per_dist)) %>% 
   drop_na()
 
 by_council_viol<-Violations %>% 
   group_by(council_district) %>% 
   tally() %>% 
-  rename(Violations_per_dist = n) %>% 
-  arrange(desc(Violations_per_dist)) %>% 
+  rename(Violations_per_dist = n) %>%
   drop_na()
 
 #Merge STRs and Code Violations data sets for maps. Work on a spatial merge for the council districts 
@@ -101,10 +99,44 @@ STRs_Viol_per_district<-merge(by_council_STRs, by_council_viol, by = 'council_di
 
 Districts_pivot<-pivot_longer(STRs_Viol_per_district, cols = 2:3, names_to ="STRs_Violations", values_to = "total")
 
+STRs_Viol_per_district<-nuisance_STRs %>% 
+  group_by(council_district) %>% 
+  tally() %>% 
+  rename(nuisance_STRs = n) %>% 
+  right_join(STRs_Viol_per_district, nuisance_STRs, by = "council_district") %>% 
+  mutate_if(is.integer , replace_na, replace = 0)
+
+STRs_Viol_per_district<-STRs_Viol_per_district %>% 
+  mutate(across(where(is.numeric), as.integer))
 ```
 
 ```{r}
-str(Districts_pivot)
+STRs_Viol_per_district %>% 
+  mutate(across(where(is.numeric), as.integer))
+str(STRs_Viol_per_district)
+```
+
+
+
+```{r}
+nuisance_STRs %>% 
+  group_by(council_district) %>% 
+  tally() %>% 
+  rename(nuisance_STRs = n) %>% 
+  right_join(STRs_Viol_per_district, nuisance_STRs, by = "council_district") %>% 
+  mutate_if(is.integer, replace_na, replace = 0)
+  
+
+```
+
+```{r}
+STRs_Viol_per_district %>% 
+  mutate_if(is.integer , replace_na, replace = 0)
+```
+
+
+```{r}
+str(nuisance_STRs)
 ```
 
 
@@ -152,9 +184,9 @@ STRs_Viol_per_district %>%
 pal <- colorBin(heat.colors(15), domain = STRs_Viol_per_district$STRs_per_dist, reverse = TRUE)
 
 STRlabels <- sprintf(
-  "<strong>%s</strong><br/>%g STRs per district",
-  STRs_Viol_per_district$council_dist, STRs_Viol_per_district$STRs_per_dist, STRs_Viol_per_district$Violations_per_dist
-) %>% lapply(htmltools::HTML)
+  "<strong>%s</strong><br/>%s STRs per district, %s",
+  STRs_Viol_per_district$council_dist, STRs_Viol_per_district$STRs_per_dist, STRs_Viol_per_district$nuisance_STRs
+) %>% sapply(htmltools::HTML)
 
 
 STRmap<- leaflet(data = STRs_Viol_per_district, options = leafletOptions(minZoom = 0, maxZoom = 20)) %>% 

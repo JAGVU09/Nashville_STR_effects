@@ -7,19 +7,26 @@
 #    http://shiny.rstudio.com/
 #
 
+#
+# This is the server logic of a Shiny web application. You can run the
+# application by clicking 'Run App' above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+
 library(shiny)
 
 shinyServer(function(input, output) {
-  
- 
-  
+  #Reactive labels for map
   labels<-reactive({
     sprintf(
       "<strong>Council District: %s</strong><br/> Number of STRs: %s <br/>  Number of Violations: %s",
       STRs_Viol_per_district$council_dist, STRs_Viol_per_district$STRs, STRs_Viol_per_district$Violations
     ) %>% lapply(htmltools::HTML) 
   }) 
-  
+  #Code for map
   output$map<-renderLeaflet({
     colors<- colorBin(heat.colors(14), domain = STRs_Viol_per_district[[input$strscodes]], reverse = TRUE)
     STRmap<-STRs_Viol_per_district %>% 
@@ -44,9 +51,9 @@ shinyServer(function(input, output) {
                     textsize = '15px',
                     direction = 'auto'
                   )
-                    
-    
-  )})
+      )
+  })
+  #code for scatter plot
   output$scatter <- renderPlot({
     STRs_Viol_per_district %>% 
       ggplot(aes(x= Violations, y = STRs))+
@@ -54,10 +61,12 @@ shinyServer(function(input, output) {
       geom_smooth(method = 'lm')+
       labs(title = 'Violations vs Short Term Rentals', x = "Violations", y = "Short Term Rentals" )
   })
+  #code for correlation beneath scatter
   output$correlation <- renderText({
     correlation <- cor(STRs_Viol_per_district$STRs, STRs_Viol_per_district$Violations)%>% round(2)
     paste0('<b>Correlation of STRs and Code Violations:</b> ', correlation)
   })
+  #code for column graph of STRs and Violations
   output$column <- renderPlot({
     Districts_pivot %>% 
       mutate(council_district = reorder(council_district, -total)) %>% 
@@ -72,8 +81,9 @@ shinyServer(function(input, output) {
            title = "Number of STRs and Code Violations by District",
       )
   })
-    output$wordcloud <- renderWordcloud2({
-      wordcloud2(tokens_clean)
+  #code for wordcloud
+  output$wordcloud <- renderWordcloud2({
+    wordcloud2(tokens_clean)
     
   })
 })
